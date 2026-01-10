@@ -1,0 +1,87 @@
+{{ template "header.html" . }}
+<section class="py-5">
+    <div class="container">
+        <div class="row align-items-center py-5">
+            <div class="col-lg-7">
+                <div class="mono-text mb-3">// Backend Developer in Tokyo</div>
+                <h1 class="display-3 fw-bold mb-4">Pyo's Dev Blog</h1>
+                <p class="fs-4 text-muted mb-5">Building scalable systems with <span class="text-dark fw-bold">Go, Gin,
+                        and Docker.</span></p>
+                <div class="d-flex gap-3">
+                    <a href="/blog" class="btn btn-orange btn-lg px-5">Explore Blog</a>
+                    <a href="/about" class="btn btn-outline-dark btn-lg px-5">About Me</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-5 bg-white bg-opacity-50">
+    <div class="container py-5">
+        <h2 class="section-title">Expertise</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card-custom p-4 h-100 border-0 shadow-sm">
+                    <div class="text-warning mb-3"><i class="bi bi-cpu-fill fs-1"></i></div>
+                    <h4 class="fw-bold">Backend Architecture</h4>
+                    <p class="text-muted">High-performance microservices using Go and specialized concurrency patterns.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom p-4 h-100 border-0 shadow-sm">
+                    <div class="text-info mb-3"><i class="bi bi-box-seam fs-1"></i></div>
+                    <h4 class="fw-bold">Docker-based Development</h4>
+                    <p class="text-muted">All services are containerized with Docker, enabling consistent local
+                        development and easy deployment using docker-compose.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-custom p-4 h-100 border-0 shadow-sm">
+                    <div class="text-primary mb-3"><i class="bi bi-cloud-arrow-up fs-1"></i></div>
+                    <h4 class="fw-bold">Azure Deployment & Hosting</h4>
+                    <p class="text-muted">Production-ready deployments are automated on Microsoft Azure using Bicep
+                        templates for scalable, cloud-native hosting.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="py-5 mb-5">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h2 class="section-title mb-0">Latest Articles</h2>
+            <a href="/blog" class="fw-bold text-decoration-none nav-link">View all articles →</a>
+        </div>
+        <div class="row g-4">
+            {{ if .posts }}
+            {{ range $key, $value := .posts }}
+            <div class="col-lg-4">
+                <div class="card-custom h-100 border-0 shadow-sm">
+                    <div class="p-4 pb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="text-muted small">By {{ $value.AuthorName }}</div>
+                            <div class="text-muted small">{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</div>
+                        </div>
+                        <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
+                            <h5 class="fw-bold mb-2 text-truncate">{{ $value.Title }}</h5>
+                        </a>
+                        <div class="mb-3 text-muted small" style="min-height:2.5em;">
+                            {{ if $value.Content }}{{ (slice $value.Content 0 60) }}{{ if gt (len $value.Content) 60
+                            }}...{{ end }}{{ end }}
+                        </div>
+                        <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+            {{ else }}
+            <div class="col-12 text-center py-5 border border-secondary border-dashed rounded">
+                <p class="text-muted">No articles found.</p>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+</section>
+
+{{ template "footer.html" . }}

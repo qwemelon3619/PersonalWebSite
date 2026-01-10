@@ -1,0 +1,248 @@
+{{ template "header.html" . }}
+
+<style>
+    /* CV 전용 추가 스타일 (통일된 디자인 기조 유지) */
+    .profile-card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+    }
+
+    .profile-sidebar {
+        background: linear-gradient(180deg, #ffffff 0%, var(--bg-main) 100%);
+        border-right: 1px solid var(--border-color);
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        font-size: 0.9rem;
+    }
+
+    .info-item i {
+        color: var(--primary-orange);
+        width: 20px;
+        text-align: center;
+    }
+
+    /* 경력/학력 타임라인 커스텀 */
+    .cv-timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .cv-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 5px;
+        bottom: 5px;
+        width: 2px;
+        background: var(--border-color);
+    }
+
+    .cv-timeline-item {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .cv-timeline-item::after {
+        content: '';
+        position: absolute;
+        left: -34px;
+        top: 6px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--primary-orange);
+        border: 2px solid white;
+    }
+
+    .skill-tag {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-family: 'JetBrains Mono';
+        transition: 0.2s;
+    }
+
+    .skill-tag:hover {
+        border-color: var(--primary-orange);
+        color: var(--primary-orange);
+    }
+</style>
+
+<div class="container py-5">
+    <div class="profile-card shadow-sm mb-5">
+        <div class="row g-0">
+            <div class="col-lg-4 profile-sidebar p-4 p-xl-5 text-center">
+                <img src="/assets/about/profile.jpg" class="rounded-circle mb-4 border border-4 border-white shadow-sm"
+                    style="width: 160px; height: 160px; object-fit: cover;">
+
+                <h2 class="fw-bold mb-1">Seung Pyo Lee</h2>
+                <div class="mono-text fw-bold mb-4" style="font-size: 1.1rem;">Backend Software Engineer</div>
+
+                <hr class="my-4 opacity-10">
+
+                <div class="text-start mx-auto" style="max-width: 240px;">
+                    <div class="info-item"><i class="bi bi-envelope"></i> lspyo11@gmail.com</div>
+                    <div class="info-item"><i class="bi bi-geo-alt"></i> Tokyo, Japan</div>
+                    <div class="info-item"><i class="bi bi-building"></i> Avanade Japan</div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-3 mt-4">
+                    <a href="https://github.com/qwemelon3619" class="btn btn-outline-dark btn-sm" target="_blank"
+                        rel="noopener noreferrer"><i class="bi bi-github"></i></a>
+                    <a href="https://www.linkedin.com/in/seungpyolee/" class="btn btn-outline-primary btn-sm"
+                        target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
+                </div>
+            </div>
+
+            <div class="col-lg-8 p-4 p-xl-5 bg-white">
+                <h4 class="section-title">Summary</h4>
+                <p class="lead text-muted mb-5" style="line-height: 1.8; font-size: 1.1rem;">
+                    "A backend engineer passionate about designing scalable systems and optimizing cloud
+                    infrastructure."<br>
+                    Currently working at <span class="fw-bold text-dark">Avanade Japan</span>, learning and applying
+                    modern backend architecture using C#,.Net, Go, Docker, and Azure.
+                </p>
+
+                <h4 class="section-title">Technical Proficiency</h4>
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
+                                <span class="fw-semibold mono-text me-2">Go</span>
+                                <span class="badge bg-primary-subtle text-primary ms-auto">Main</span>
+                            </li>
+                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
+                                <span class="fw-semibold mono-text me-2">C#</span>
+                                <span class="badge bg-info-subtle text-info ms-auto">Experienced</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
+                                <span class="fw-semibold mono-text me-2">C / C++</span>
+                                <span class="badge bg-success-subtle text-success ms-auto">Fundamental</span>
+                            </li>
+                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
+                                <span class="fw-semibold mono-text me-2">DBMS (SQL)</span>
+                                <span class="badge bg-secondary-subtle text-secondary ms-auto">Fundamental</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-2">
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">Django</span>
+                        <span class="skill-tag">.Net</span>
+                        <span class="skill-tag">Java</span>
+                        <span class="skill-tag">Azure</span>
+                        <span class="skill-tag">Docker</span>
+                        <span class="skill-tag">Git</span>
+                        <span class="skill-tag">Linux</span>
+                        <span class="skill-tag">CI/CD</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+                <h4 class="section-title">Experience</h4>
+                <div class="cv-timeline">
+                    <div class="cv-timeline-item">
+                        <h5 class="fw-bold mb-0">Avanade Japan</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="mono-text small">Analyst / Backend Developer</span>
+                            <span class="text-muted small">2025.04 - Present</span>
+                        </div>
+                        <ul class="small text-muted mb-4">
+                            <li>Enhanced backend API processing speed by 30% through logic structure optimization.</li>
+                            <li>Considering the nature of a government project, documented every API function and
+                                ensured very high code coverage to maximize code reliability and maintainability.</li>
+                            <li>Designed, developed, and deployed highly scalable backend RESTful APIs using C# and
+                                Azure Functions.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h4 class="section-title mt-4">Key Projects</h4>
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold mb-1">Personal Website</h5>
+                        <a href="https://github.com/qwemelon3619/neilz_website" target="_blank" class="text-muted"><i
+                                class="bi bi-github"></i></a>
+                    </div>
+                    <p class="small text-muted">Personal web portfolio site built with Go (Gin), PorstageDB, Redis, and
+                        Docker.
+                        Experience in container-based deployment and backend performance optimization.</p>
+                </div>
+                <div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold mb-1">FitHub</h5>
+                        <a href="https://github.com/qwemelon3619/CS180_FitHub" target="_blank" class="text-muted"><i
+                                class="bi bi-github"></i></a>
+                    </div>
+                    <p class="small text-muted">Workout tracking and leaderboard app. Responsible for DB design to
+                        ensure data synchronization and integrity among users.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm mb-4">
+                <h4 class="section-title">Education</h4>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-0">UC Riverside</h6>
+                    <div class="text-muted small mb-1">BSc in Computer Science | 2020 - 2024</div>
+                    <div class="mono-text" style="font-size: 0.8rem;">Systems & Algorithms Focus</div>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0">CSU San Marcos</h6>
+                    <div class="text-muted small">BSc in Computer Science | 2019 - 2020</div>
+                </div>
+            </div>
+
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm">
+                <h4 class="section-title">Languages</h4>
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <div class="d-flex justify-content-between mb-1"><span>Korean</span><span
+                                class="badge bg-dark">Native</span></div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1"><span>English</span><span
+                                class="badge bg-dark">Fluent</span></div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: 90%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1"><span>Japanese</span><span
+                                class="badge bg-dark">Intermediate</span></div>
+                        <div class="progress" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: 60%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ template "footer.html" . }}

@@ -1,0 +1,101 @@
+{{ template "header.html" . }}
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<section class="container my-5">
+    <form action="/auth/blog-editing/{{.articleNumber}}" method="POST" enctype="multipart/form-data" id="blogform">
+        <div class="mb-3">
+            <label for="article-title" class="form-label">Title</label>
+            <input class="form-control form-control-lg" name="article-title" value="{{ .article.Title }}">
+        </div>
+        <div class="mb-3">
+            <label for="article-title" class="form-label">SubTitle</label>
+            <input class="form-control form-control-lg" name="article-subtitle" value="{{ .article.Subtitle }}">
+        </div>
+        <div class="mb-3">
+            <label for="formFile" class="form-label">Header image</label>
+            <input class="form-control" type="file" name="article-img">
+        </div>
+        <!-- <div class="mb-5">
+            <label for="article-body" class="form-label">Body</label>
+            <textarea class="form-control form-control-lg" name="article-content" rows="30"></textarea>
+        </div> -->
+        <div id="toolbar-container">
+            <span class="ql-formats">
+                <select class="ql-font"></select>
+                <select class="ql-size"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-bold"></button>
+                <button class="ql-italic"></button>
+                <button class="ql-underline"></button>
+                <button class="ql-strike"></button>
+            </span>
+            <span class="ql-formats">
+                <select class="ql-color"></select>
+                <select class="ql-background"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-header" value="1"></button>
+                <button class="ql-header" value="2"></button>
+                <button class="ql-blockquote"></button>
+                <button class="ql-code-block"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-list" value="ordered"></button>
+                <button class="ql-list" value="bullet"></button>
+                <button class="ql-indent" value="-1"></button>
+                <button class="ql-indent" value="+1"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-direction" value="rtl"></button>
+                <select class="ql-align"></select>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-link"></button>
+                <button class="ql-image"></button>
+                <button class="ql-video"></button>
+                <button class="ql-formula"></button>
+            </span>
+            <span class="ql-formats">
+                <button class="ql-clean"></button>
+            </span>
+        </div>
+        <div id="editor" style="height: 700px;font-size: 20px;">
+            {{ .content }}
+        </div>
+        <textarea name="article-content" style='display:none' id="hiddenArea"></textarea>
+        <br>
+        <div class="d-flex flex-row-reverse">
+            <button type="submit" class="btn btn-primary">Post</button>
+            <!-- <button type="button" class="btn btn-primary mx-3">Save</button> -->
+        </div>
+    </form>
+</section>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
+<!-- Initialize Quill editor -->
+<script>
+    const quill = new Quill('#editor', {
+        modules: {
+            syntax: true,
+            toolbar: '#toolbar-container',
+        },
+        placeholder: 'Blog Article Content',
+        theme: 'snow',
+    });
+
+    $("#blogform").on("submit", function () {
+        // var qillText = quill.getSemanticHTML();
+        var quillText = quill.container.innerHTML
+        // var quillText_ = quill.getContents();
+        // var quillText = JSON.stringify(quillText_)
+        // alert(quillText)
+        document.getElementById("hiddenArea").value = quillText;
+    })
+</script>
+{{ template "footer.html" . }}

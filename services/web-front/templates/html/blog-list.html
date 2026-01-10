@@ -1,0 +1,122 @@
+{{ template "header.html" . }}
+<style>
+    .custom-pagination .page-link {
+        color: var(--text-dark);
+        background: #fff;
+        border: 1.5px solid var(--border-color);
+        transition: 0.15s;
+    }
+
+    .custom-pagination .page-link:hover {
+        background: var(--primary-orange);
+        color: #fff;
+        border-color: var(--primary-orange);
+    }
+
+    .custom-pagination .active .page-link {
+        background: var(--primary-orange);
+        color: #fff;
+        border-color: var(--primary-orange);
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(255, 159, 103, 0.08);
+    }
+
+    .custom-pagination .page-item.disabled .page-link {
+        color: #bbb;
+        background: #f4f4f2;
+        border-color: var(--border-color);
+    }
+
+    .custom-pagination {
+        gap: 0.25rem;
+    }
+</style>
+<section class="py-5 bg-opacity-50">
+    <div class="container py-5">
+        <h2 class="section-title mb-5">Blog Articles</h2>
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="row g-4">
+                    {{ if .posts }}
+                    {{ range $key, $value := .posts }}
+                    <div class="col-md-6">
+                        <div class="card-custom h-100 border-0 shadow-sm">
+                            <a href="/blog/{{$value.ID}}" class="d-block position-relative">
+                                <img class="w-100 object-fit-cover"
+                                    style="height:220px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;"
+                                    src="/assets/blog_img/sample.jpg" alt="{{$value.Title}}" loading="lazy" />
+                            </a>
+                            <div class="p-4">
+                                <div class="mono-text small mb-2">{{$value.UpdatedAt.Format "Jan 02, 2006"}}</div>
+                                <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
+                                    <h5 class="fw-bold mb-2 text-truncate">{{$value.Title}}</h5>
+                                </a>
+                                <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+                    {{ else }}
+                    <div class="col-12 text-center py-5 border border-secondary border-dashed rounded">
+                        <p class="text-muted">No articles found.</p>
+                    </div>
+                    {{ end }}
+                </div>
+
+                <!-- Pagination-->
+                <nav aria-label="Pagination">
+                    <hr class="my-0" />
+                    <ul class="pagination justify-content-center my-4 custom-pagination">
+                        <li class="page-item {{if eq .page 1}}disabled{{end}}">
+                            <a class="page-link rounded-pill px-3" href="?page={{.prevPage}}" tabindex="-1"
+                                aria-disabled="{{if eq .page 1}}true{{end}}">&laquo;</a>
+                        </li>
+                        {{ range $i := .pageNumbers }}
+                        <li class="page-item {{if eq $.page $i}}active{{end}}">
+                            <a class="page-link rounded-pill mx-1 px-3 fw-bold" href="?page={{$i}}">{{$i}}</a>
+                        </li>
+                        {{ end }}
+                        <li class="page-item {{if eq .page .totalPages}}disabled{{end}}">
+                            <a class="page-link rounded-pill px-3" href="?page={{.nextPage}}"
+                                aria-disabled="{{if eq .page .totalPages}}true{{end}}">&raquo;</a>
+                        </li>
+                    </ul>
+                </nav>
+
+            </div>
+            <div class="col-lg-4">
+                <div class="card-custom mb-4 p-4 border-0 shadow-sm">
+                    <h5 class="fw-bold mb-3">Search</h5>
+                    <div class="input-group">
+                        <input class="form-control" type="text" placeholder="Enter search term..."
+                            aria-label="Enter search term..." aria-describedby="button-search" id="searchInput" />
+                        <button class="btn btn-orange" id="button-search" type="button">Go!</button>
+                    </div>
+                </div>
+                {{ if .isLoggedIn }}
+                <a href="/blog-post" class="btn btn-orange w-100 mb-4">New Post</a>
+                {{ end }}
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchButton = document.getElementById("button-search");
+        const searchInput = document.getElementById("searchInput");
+        searchButton.addEventListener("click", function () {
+            const searchTerm = searchInput.value;
+            const searchUrl = `/blog-search/1?search=${encodeURIComponent(searchTerm)}`;
+            window.location.href = searchUrl;
+        });
+        searchInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchButton.click();
+            }
+        });
+    });
+</script>
+
+{{ template "footer.html" . }}

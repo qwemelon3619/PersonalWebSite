@@ -1,0 +1,10 @@
+go 1.25.5
+
+use (
+	./pkg
+	./services/post-service
+	./services/auth-service
+	./services/api-gateway
+	./services/web-front
+	./services/img-service
+)

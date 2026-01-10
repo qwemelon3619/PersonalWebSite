@@ -1,0 +1,123 @@
+version: '3.8'
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: blog_db
+      POSTGRES_USER: blog_user
+      POSTGRES_PASSWORD: blog_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blog_network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U blog_user -d blog_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - blog_network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+      target: dev
+    environment:
+      - POSTGRE_DB_URL=postgres
+      - POSTGRE_DB_PORT=5432
+      - POSTGRE_DB_USER=blog_user
+      - POSTGRE_DB_PASSWORD=blog_password
+      - POSTGRE_DB_NAME=blog_db
+      - REDIS_DB_URL=redis
+      - REDIS_DB_PORT=6379
+      - REDIS_DB_PASSWORD=
+      - JWT_SECRET_KEY=your-jwt-secret
+      - SERVER_PORT=8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - blog_network
+    volumes:
+      - .:/app
+
+  post-service:
+    build:
+      context: .
+      dockerfile: services/post-service/Dockerfile
+      target: dev
+    environment:
+      - POSTGRE_DB_URL=postgres
+      - POSTGRE_DB_PORT=5432
+      - POSTGRE_DB_USER=blog_user
+      - POSTGRE_DB_PASSWORD=blog_password
+      - POSTGRE_DB_NAME=blog_db
+      - REDIS_DB_URL=redis
+      - REDIS_DB_PORT=6379
+      - REDIS_DB_PASSWORD=
+      - SERVER_PORT=8082
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - blog_network
+    volumes:
+      - .:/app
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+      target: dev
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - POST_SERVICE_URL=http://post-service:8082
+      - SERVER_PORT=8080
+      - JWT_SECRET_KEY=your-jwt-secret
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    depends_on:
+      - auth-service
+      - post-service
+    networks:
+      - blog_network
+  web-front:
+    build:
+      context: .
+      dockerfile: services/web-front/Dockerfile
+      target: dev
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - SERVER_PORT=3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+    depends_on:
+      - api-gateway
+    networks:
+      - blog_network
+volumes:
+  postgres_data:
+
+
+networks:
+  blog_network:
+    driver: bridge
