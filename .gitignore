@@ -1,0 +1,40 @@
+.env
+bin/
+*.log
+.DS_Store
+.vscode/
+.idea/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+.dockerignore
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Azure
+*.publish
+.azure/
+
+# git
+.github/

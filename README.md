@@ -71,8 +71,5 @@ cd services/api-gateway && go run cmd/main.go
 - Designed for easy testing, scaling, and production deployment
 
 ---
-Contact: [Project Owner]
+Contact: Seung Pyo Lee(lspyo11@gmail.com)
 
-## Contributing
-
-Please read the [coding guidelines](.github/copilot-instructions.md) for AI development assistance.
