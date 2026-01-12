@@ -13,6 +13,7 @@ type GatewayConfig struct {
 	config.GlobalConfig
 	AuthServiceURL string
 	PostServiceURL string
+	ImgServiceURL  string
 	JWTSecretKey   string
 }
 
@@ -25,6 +26,7 @@ func LoadGatewayConfig() *GatewayConfig {
 		GlobalConfig:   *config.LoadGlobalConfig(),
 		AuthServiceURL: getEnv("AUTH_SERVICE_URL"),
 		PostServiceURL: getEnv("POST_SERVICE_URL"),
+		ImgServiceURL:  getEnv("IMG_SERVICE_URL"),
 		JWTSecretKey:   getEnv("JWT_SECRET_KEY"),
 	}
 }

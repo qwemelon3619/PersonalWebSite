@@ -114,6 +114,67 @@ func BlogPostSaveHandler(c *gin.Context) {
 		content = strings.Replace(content, value, "", -1)
 	}
 
+	var newContent strings.Builder
+	imgTagStart := 0
+	for {
+		// 1. find <img tag start
+		imgIdx := strings.Index(content[imgTagStart:], "<img")
+		if imgIdx == -1 {
+			newContent.WriteString(content[imgTagStart:])
+			break
+		}
+		imgIdx += imgTagStart
+
+		// Write the text before the <img tag
+		newContent.WriteString(content[imgTagStart:imgIdx])
+
+		// 2. find end of img tag
+		imgTagEndIdx := strings.Index(content[imgIdx:], ">")
+		if imgTagEndIdx == -1 {
+			newContent.WriteString(content[imgIdx:])
+			break
+		}
+		imgTagEndIdx += imgIdx
+		fullImgTag := content[imgIdx : imgTagEndIdx+1]
+
+		// 3. find src attribute
+		srcStartIdx := strings.Index(fullImgTag, "src=")
+		if srcStartIdx == -1 {
+			// if not, continue to next
+			imgTagStart = imgTagEndIdx + 1
+			continue
+		}
+
+		// find quote position
+		quoteStartRelative := strings.IndexAny(fullImgTag[srcStartIdx:], "\"'")
+		if quoteStartRelative == -1 {
+			imgTagStart = imgTagEndIdx + 1
+			continue
+		}
+		quoteStart := srcStartIdx + quoteStartRelative
+		quoteChar := fullImgTag[quoteStart]
+		quoteEnd := strings.Index(fullImgTag[quoteStart+1:], string(quoteChar))
+		if quoteEnd == -1 {
+			imgTagStart = imgTagEndIdx + 1
+			continue
+		}
+		quoteEnd += quoteStart + 1
+		imgSrc := fullImgTag[quoteStart+1 : quoteEnd]
+
+		// 4. Base64 check and upload
+		if strings.HasPrefix(imgSrc, "data:image/") && strings.Contains(imgSrc, ";base64,") {
+			imgUrl := uploadBase64Image(imgSrc, c)
+			// change src attribute
+			replacedTag := fullImgTag[:quoteStart+1] + imgUrl + fullImgTag[quoteEnd:]
+			newContent.WriteString(replacedTag)
+		} else {
+			// if not base64, remove the img entirely
+		}
+
+		imgTagStart = imgTagEndIdx + 1
+	}
+	content = newContent.String()
+
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
 		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": "Need to Login"})
@@ -223,6 +284,58 @@ func BlogEditHandler(c *gin.Context) {
 			"CreatedAt":   post.CreatedAt,
 			"UpdatedAt":   post.UpdatedAt,
 		}})
+}
+
+type uploadImageRequest struct {
+	Filename string `json:"filename"`
+	UserId   string `json:"userId"`
+	Data     string `json:"data"` // base64 string
+}
+
+// 업로드 로직 분리 (가독성 및 재사용성)
+func uploadBase64Image(imgSrc string, c *gin.Context) string {
+	ext := ".png"
+	if semi := strings.Index(imgSrc, ";"); semi != -1 && len(imgSrc) > 11 {
+		mime := imgSrc[11:semi]
+		switch mime {
+		case "jpeg", "jpg":
+			ext = ".jpg"
+		case "gif":
+			ext = ".gif"
+		case "webp":
+			ext = ".webp"
+		case "svg+xml":
+			ext = ".svg"
+		}
+	}
+
+	apiImgService := os.Getenv("IMG_SERVICE_URL")
+	if apiImgService == "" {
+		apiImgService = "http://img-service:8083"
+	}
+	userID, _ := c.Cookie("userID")
+	if userID == "" {
+		return ""
+	}
+
+	reqBody := uploadImageRequest{
+		Filename: fmt.Sprintf("sample%s", ext),
+		UserId:   userID,
+		Data:     imgSrc,
+	}
+
+	respBody, _ := json.Marshal(reqBody)
+	resp, err := http.Post(apiImgService+"/blog-image", "application/json", bytes.NewReader(respBody))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	var imgResp struct{ URL string }
+	if err := json.NewDecoder(resp.Body).Decode(&imgResp); err != nil {
+		return ""
+	}
+	return "http://localhost:10000/devstoreaccount1/blogcontainer/" + imgResp.URL
 }
 
 func BlogRemoveHandler(c *gin.Context) {

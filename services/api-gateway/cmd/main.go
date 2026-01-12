@@ -29,11 +29,12 @@ func main() {
 	r.PUT("/api/v1/posts/:id", middleware.AuthMiddleware(TokenManager), proxyTo(conf.PostServiceURL+"/posts/:id"))
 	r.DELETE("/api/v1/posts/:id", middleware.AuthMiddleware(TokenManager), proxyTo(conf.PostServiceURL+"/posts/:id"))
 
+	// Image Service proxy - internal use only
+
 	log.Printf("API Gateway running on :%s", conf.ServerPort)
 	if err := r.Run(":" + conf.ServerPort); err != nil {
 		log.Fatalf("failed to run server: %v", err)
 	}
-
 }
 
 // proxyTo creates a Gin handler that proxies requests to the specified target URL.

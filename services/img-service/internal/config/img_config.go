@@ -10,10 +10,8 @@ import (
 
 type BlobConfig struct {
 	config.GlobalConfig
-	AzureBlobUrl      string
-	BlobContainerName string
-	BlobAccountName   string
-	BlobAccountKey    string
+	AzureStorageConnectionString string
+	BlobContainerName            string
 }
 
 func LoadBlobConfig() *BlobConfig {
@@ -22,11 +20,9 @@ func LoadBlobConfig() *BlobConfig {
 		log.Println("No .env file found, reading from environment variables")
 	}
 	return &BlobConfig{
-		GlobalConfig:      *config.LoadGlobalConfig(),
-		AzureBlobUrl:      getEnv("AZURE_BLOB_URL"),
-		BlobContainerName: getEnv("BLOB_CONTAINER_NAME"),
-		BlobAccountName:   getEnv("BLOB_ACCOUNT_NAME"),
-		BlobAccountKey:    getEnv("BLOB_ACCOUNT_KEY"),
+		GlobalConfig:                 *config.LoadGlobalConfig(),
+		AzureStorageConnectionString: getEnv("AZURE_STORAGE_CONNECTION_STRING"),
+		BlobContainerName:            getEnv("BLOB_CONTAINER_NAME"),
 	}
 }
 

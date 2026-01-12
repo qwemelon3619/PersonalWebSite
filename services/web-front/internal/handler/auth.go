@@ -74,6 +74,7 @@ func LoginPostHandler(c *gin.Context) {
 	c.SetCookie("access_token", accessToken, 3600, "/", "", false, true)
 	c.SetCookie("refresh_token", refreshToken, 7200, "/", "", false, true)
 	c.SetCookie("user", user["username"].(string), 7200, "/", "", false, false)
+	c.SetCookie("userID", fmt.Sprintf("%v", user["id"]), 7200, "/", "", false, false)
 	c.Redirect(http.StatusFound, "/")
 }
 

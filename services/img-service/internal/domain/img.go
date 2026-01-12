@@ -5,18 +5,17 @@ import (
 	"io"
 )
 
-// blog file url -> /{username}/blog/images/{imagename}
-type Image struct {
-	URL      string
-	Name     string
-	Size     int64
-	MimeType string
+// blog file url -> /{username}/blog/img/{imagename}
+type ImageResponse struct {
+	URL  string
+	Name string
+	Size int64
 }
 
 type ImgRepository interface {
-	UploadImageToBlob(ctx context.Context, file io.Reader, fileName string, fileSize int64, mimeType string) (bool, error)
+	UploadImageToBlob(ctx context.Context, file io.Reader, filePath string) (bool, error)
 }
 
 type ImgService interface {
-	UploadImage(ctx context.Context, filename string, data []byte, mimeType string) (*Image, error)
+	UploadImage(ctx context.Context, filename string, data string, userId int) (*ImageResponse, error)
 }

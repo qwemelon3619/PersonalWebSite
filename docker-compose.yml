@@ -26,6 +26,18 @@ services:
       - "6379:6379"
     networks:
       - blog_network
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: "azurite-blob --blobHost 0.0.0.0 --loose --skipApiVersionCheck"
+    container_name: azurite
+    ports:
+      - "10000:10000" # Blob service
+      - "10001:10001" # Queue service
+      - "10002:10002" # Table service
+    volumes:
+      - azurite_data:/data
+    networks:
+      - blog_network
 
   auth-service:
     build:
@@ -78,6 +90,23 @@ services:
     volumes:
       - .:/app
 
+  img-service:
+    build:
+      context: .
+      dockerfile: services/img-service/Dockerfile
+      target: dev
+    environment:
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;     
+      - BLOB_CONTAINER_NAME=blogcontainer
+      - BLOB_ACCOUNT_NAME=devstoreaccount1
+      - SERVER_PORT=8083
+    networks:
+      - blog_network
+    volumes:
+      - .:/app
+    depends_on:
+      - azurite
+
   # API Gateway
   api-gateway:
     build:
@@ -87,6 +116,7 @@ services:
     environment:
       - AUTH_SERVICE_URL=http://auth-service:8081
       - POST_SERVICE_URL=http://post-service:8082
+      - IMG_SERVICE_URL=http://img-service:8083
       - SERVER_PORT=8080
       - JWT_SECRET_KEY=your-jwt-secret
     ports:
@@ -114,9 +144,10 @@ services:
       - api-gateway
     networks:
       - blog_network
+
 volumes:
   postgres_data:
-
+  azurite_data:
 
 networks:
   blog_network:
