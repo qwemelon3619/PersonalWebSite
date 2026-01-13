@@ -25,6 +25,25 @@ jobs:
           # create a container-backed builder and use it (idempotent)
           docker buildx create --name mybuilder --driver docker-container --use || true
           docker buildx inspect --bootstrap
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /home/runner/go/pkg/mod
+            /home/runner/.cache/go-build
+          key: ${{ runner.os }}-go-cache-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-cache-
+
+      - name: Pre-download Go modules for all services
+        run: |
+          set -e
+          for d in services/auth-service services/post-service services/img-service services/api-gateway services/web-front; do
+            if [ -f "$d/go.mod" ]; then
+              echo "Downloading modules for $d"
+              (cd "$d" && go mod download)
+            fi
+          done
 
       # 1. Azure Login
       - name: Azure Login
