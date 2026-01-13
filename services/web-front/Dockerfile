@@ -22,6 +22,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # --- Production image ---
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates
+WORKDIR /app
+COPY . .
 WORKDIR /app/services/web-front
 COPY --from=prod-build /app/services/web-front/web-front .
 EXPOSE 3000
