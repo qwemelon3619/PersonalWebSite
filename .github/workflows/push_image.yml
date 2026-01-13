@@ -32,28 +32,28 @@ jobs:
         run: |
           IMAGE_TAG=${{ github.sha }}
           IMAGE_PREFIX=${{ secrets.REGISTRY_LOGIN_SERVER }}
-          # api-gateway
-          docker build -t $IMAGE_PREFIX/api-gateway:$IMAGE_TAG services/api-gateway
+          # api-gateway (production target)
+          docker build --target prod-build -t $IMAGE_PREFIX/api-gateway:$IMAGE_TAG services/api-gateway
           docker push $IMAGE_PREFIX/api-gateway:$IMAGE_TAG
           docker tag $IMAGE_PREFIX/api-gateway:$IMAGE_TAG $IMAGE_PREFIX/api-gateway:latest
           docker push $IMAGE_PREFIX/api-gateway:latest
-          # auth-service
-          docker build -t $IMAGE_PREFIX/auth-service:$IMAGE_TAG services/auth-service
+          # auth-service (production target)
+          docker build --target prod-build -t $IMAGE_PREFIX/auth-service:$IMAGE_TAG services/auth-service
           docker push $IMAGE_PREFIX/auth-service:$IMAGE_TAG
           docker tag $IMAGE_PREFIX/auth-service:$IMAGE_TAG $IMAGE_PREFIX/auth-service:latest
           docker push $IMAGE_PREFIX/auth-service:latest
-          # post-service
-          docker build -t $IMAGE_PREFIX/post-service:$IMAGE_TAG services/post-service
+          # post-service (production target)
+          docker build --target prod-build -t $IMAGE_PREFIX/post-service:$IMAGE_TAG services/post-service
           docker push $IMAGE_PREFIX/post-service:$IMAGE_TAG
           docker tag $IMAGE_PREFIX/post-service:$IMAGE_TAG $IMAGE_PREFIX/post-service:latest
           docker push $IMAGE_PREFIX/post-service:latest
-          # img-service
-          docker build -t $IMAGE_PREFIX/img-service:$IMAGE_TAG services/img-service
+          # img-service (production target)
+          docker build --target prod-build -t $IMAGE_PREFIX/img-service:$IMAGE_TAG services/img-service
           docker push $IMAGE_PREFIX/img-service:$IMAGE_TAG
           docker tag $IMAGE_PREFIX/img-service:$IMAGE_TAG $IMAGE_PREFIX/img-service:latest
           docker push $IMAGE_PREFIX/img-service:latest
-          # web-front
-          docker build -t $IMAGE_PREFIX/web-front:$IMAGE_TAG services/web-front
+          # web-front (production target)
+          docker build --target prod-build -t $IMAGE_PREFIX/web-front:$IMAGE_TAG services/web-front
           docker push $IMAGE_PREFIX/web-front:$IMAGE_TAG
           docker tag $IMAGE_PREFIX/web-front:$IMAGE_TAG $IMAGE_PREFIX/web-front:latest
           docker push $IMAGE_PREFIX/web-front:latest

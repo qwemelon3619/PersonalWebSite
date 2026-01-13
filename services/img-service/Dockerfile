@@ -21,6 +21,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/img-service ./cmd/main.go
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates 
 WORKDIR /app
-COPY --from=builder /app/img-service .
+COPY --from=prod-build /app/img-service .
 EXPOSE 8083
 CMD ["./img-service"]

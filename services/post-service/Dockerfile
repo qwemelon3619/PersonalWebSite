@@ -23,6 +23,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /app/post-service ./cmd/main.go
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates
 WORKDIR /app
-COPY --from=builder /app/post-service .
+COPY --from=prod-build /app/post-service .
 EXPOSE 8082
 CMD ["./post-service"]
