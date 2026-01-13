@@ -69,32 +69,22 @@ jobs:
           # Cache will be stored in the registry (requires write access)
           docker buildx build \
             --platform linux/amd64 \
-            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
-            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
             -t ${IMAGE_PREFIX}/api-gateway:${IMAGE_TAG} -f services/api-gateway/Dockerfile . --push
 
           docker buildx build \
             --platform linux/amd64 \
-            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
-            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
             -t ${IMAGE_PREFIX}/auth-service:${IMAGE_TAG} -f services/auth-service/Dockerfile . --push
 
           docker buildx build \
             --platform linux/amd64 \
-            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
-            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
             -t ${IMAGE_PREFIX}/post-service:${IMAGE_TAG} -f services/post-service/Dockerfile . --push
 
           docker buildx build \
             --platform linux/amd64 \
-            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
-            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
             -t ${IMAGE_PREFIX}/img-service:${IMAGE_TAG} -f services/img-service/Dockerfile . --push
 
           docker buildx build \
             --platform linux/amd64 \
-            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
-            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
             -t ${IMAGE_PREFIX}/web-front:${IMAGE_TAG} -f services/web-front/Dockerfile . --push
 
       # 4. Deploy to Azure App Service
