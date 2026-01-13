@@ -258,11 +258,7 @@ func (h *postHandler) uploadBase64Image(imgSrc string, userID string, accessToke
 	if imgResp.URL == "" {
 		return "", fmt.Errorf("empty url from img service")
 	}
-	// optional base URL from config
 	blobBase := h.cfg.BlobBaseUrl
-	if blobBase != "" {
-		return strings.TrimRight(blobBase, "/") + "/" + strings.TrimLeft(imgResp.URL, "/"), nil
-	}
 	// fallback default for local azurite
-	return "http://localhost:10000/devstoreaccount1/blogcontainer/" + imgResp.URL, nil
+	return blobBase + imgResp.URL, nil
 }

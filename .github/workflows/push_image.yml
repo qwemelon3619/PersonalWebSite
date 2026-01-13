@@ -88,11 +88,11 @@ jobs:
             -t ${IMAGE_PREFIX}/web-front:${IMAGE_TAG} -f services/web-front/Dockerfile . --push
 
       # 4. Deploy to Azure App Service
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          images: '${{ secrets.REGISTRY_LOGIN_SERVER }}/web-front:${{ github.sha }}'
+      # - name: Deploy to Azure Web App
+      #   uses: azure/webapps-deploy@v3
+      #   with:
+      #     app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+      #     images: '${{ secrets.REGISTRY_LOGIN_SERVER }}/web-front:${{ github.sha }}'
 
       # 5. Azure Logout
       - name: Azure Logout
