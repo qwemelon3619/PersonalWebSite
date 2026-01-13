@@ -15,7 +15,9 @@ WORKDIR /app
 COPY . .
 # Build
 WORKDIR /app/services/img-service
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/img-service ./cmd/main.go
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o /app/img-service ./cmd/main.go
 
 
 FROM alpine:latest AS prod

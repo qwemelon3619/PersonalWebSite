@@ -14,7 +14,9 @@ FROM golang:1.25-alpine AS prod-build
 WORKDIR /app
 COPY . .
 WORKDIR /app/services/auth-service
-RUN CGO_ENABLED=0 GOOS=linux go build -o auth-service ./cmd/main.go
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -o auth-service ./cmd/main.go
 
 # --- Production image ---
 FROM alpine:latest AS prod

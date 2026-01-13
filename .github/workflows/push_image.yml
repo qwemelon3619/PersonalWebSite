@@ -13,6 +13,12 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       # 1. Azure Login
       - name: Azure Login
         uses: azure/login@v2
@@ -28,35 +34,42 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       # 3. Build and Push Images to ACR (all services)
-      - name: Build and push images
+      - name: Build and push images (with buildx cache)
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          IMAGE_PREFIX: ${{ secrets.REGISTRY_LOGIN_SERVER }}
         run: |
-          IMAGE_TAG=${{ github.sha }}
-          IMAGE_PREFIX=${{ secrets.REGISTRY_LOGIN_SERVER }}
-          # api-gateway (build final runtime image from Dockerfile)
-          docker build -t $IMAGE_PREFIX/api-gateway:$IMAGE_TAG -f services/api-gateway/Dockerfile .
-          docker push $IMAGE_PREFIX/api-gateway:$IMAGE_TAG
-          docker tag $IMAGE_PREFIX/api-gateway:$IMAGE_TAG $IMAGE_PREFIX/api-gateway:latest
-          docker push $IMAGE_PREFIX/api-gateway:latest
-          # auth-service (production target)
-          docker build -t $IMAGE_PREFIX/auth-service:$IMAGE_TAG -f services/auth-service/Dockerfile .
-          docker push $IMAGE_PREFIX/auth-service:$IMAGE_TAG
-          docker tag $IMAGE_PREFIX/auth-service:$IMAGE_TAG $IMAGE_PREFIX/auth-service:latest
-          docker push $IMAGE_PREFIX/auth-service:latest
-          # post-service (production target)
-          docker build -t $IMAGE_PREFIX/post-service:$IMAGE_TAG -f services/post-service/Dockerfile .
-          docker push $IMAGE_PREFIX/post-service:$IMAGE_TAG
-          docker tag $IMAGE_PREFIX/post-service:$IMAGE_TAG $IMAGE_PREFIX/post-service:latest
-          docker push $IMAGE_PREFIX/post-service:latest
-          # img-service (production target)
-          docker build -t $IMAGE_PREFIX/img-service:$IMAGE_TAG -f services/img-service/Dockerfile .
-          docker push $IMAGE_PREFIX/img-service:$IMAGE_TAG
-          docker tag $IMAGE_PREFIX/img-service:$IMAGE_TAG $IMAGE_PREFIX/img-service:latest
-          docker push $IMAGE_PREFIX/img-service:latest
-          # web-front (production target)
-          docker build -t $IMAGE_PREFIX/web-front:$IMAGE_TAG -f services/web-front/Dockerfile .
-          docker push $IMAGE_PREFIX/web-front:$IMAGE_TAG
-          docker tag $IMAGE_PREFIX/web-front:$IMAGE_TAG $IMAGE_PREFIX/web-front:latest
-          docker push $IMAGE_PREFIX/web-front:latest
+          # Use buildx and registry cache to speed up dependency download between CI runs
+          # Cache will be stored in the registry (requires write access)
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
+            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
+            -t ${IMAGE_PREFIX}/api-gateway:${IMAGE_TAG} -f services/api-gateway/Dockerfile . --push
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
+            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
+            -t ${IMAGE_PREFIX}/auth-service:${IMAGE_TAG} -f services/auth-service/Dockerfile . --push
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
+            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
+            -t ${IMAGE_PREFIX}/post-service:${IMAGE_TAG} -f services/post-service/Dockerfile . --push
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
+            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
+            -t ${IMAGE_PREFIX}/img-service:${IMAGE_TAG} -f services/img-service/Dockerfile . --push
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --cache-to type=registry,ref=${IMAGE_PREFIX}/buildcache:latest,mode=max \
+            --cache-from type=registry,ref=${IMAGE_PREFIX}/buildcache:latest \
+            -t ${IMAGE_PREFIX}/web-front:${IMAGE_TAG} -f services/web-front/Dockerfile . --push
 
       # 4. Deploy to Azure App Service
       - name: Deploy to Azure Web App
