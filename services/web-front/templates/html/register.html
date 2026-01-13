@@ -1,10 +1,10 @@
 {{ template "header.html" . }}
-<section class="d-flex align-items-center justify-content-center min-vh-100 bg-light">
+<section class="d-flex align-items-center justify-content-center min-vh-100">
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-7 col-lg-6">
-                <div class="card shadow-lg border-0 rounded-4">
-                    <div class="card-body p-4">
+            <div class="col-md-6 col-lg-5">
+                <div class="card-custom p-4 shadow-sm border-0">
+                    <div class="card-body p-3">
                         <h3 class="mb-4 text-center"><i class="bi bi-person-plus me-2"></i>Register</h3>
                         <form action="/register" method="POST" id="registerform">
                             <div class="mb-3">
@@ -31,10 +31,10 @@
                                         placeholder="Enter your password" required />
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-success w-100 py-2 mt-3">Register</button>
+                            <button type="submit" class="btn btn-orange w-100 py-2 mt-3">Register</button>
                         </form>
                         <div class="mt-3 text-center">
-                            <a href="/login" class="text-decoration-none">Go to Login</a>
+                            <a href="/login" class="text-decoration-none">Already have an account? Login</a>
                         </div>
                     </div>
                 </div>

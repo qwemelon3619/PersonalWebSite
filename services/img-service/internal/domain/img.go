@@ -13,7 +13,7 @@ type ImageResponse struct {
 }
 
 type ImgRepository interface {
-	UploadImageToBlob(ctx context.Context, file io.Reader, filePath string) (bool, error)
+	UploadImageToBlob(ctx context.Context, file io.Reader, filePath string, contentType string) (bool, error)
 }
 
 type ImgService interface {

@@ -66,10 +66,6 @@
                         <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
                             <h5 class="fw-bold mb-2 text-truncate">{{ $value.Title }}</h5>
                         </a>
-                        <div class="mb-3 text-muted small" style="min-height:2.5em;">
-                            {{ if $value.Content }}{{ (slice $value.Content 0 60) }}{{ if gt (len $value.Content) 60
-                            }}...{{ end }}{{ end }}
-                        </div>
                         <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
                     </div>
                 </div>

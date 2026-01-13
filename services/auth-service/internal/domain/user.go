@@ -43,5 +43,5 @@ type AuthService interface {
 	Register(req RegisterRequest) (*User, error)
 	GetUserByEmail(email string) (*User, error)
 	GetUserByID(id uint) (*User, error)
-	RefreshToken(refreshToken string) (string, error)
+	RefreshToken(refreshToken string) (string, string, error)
 }

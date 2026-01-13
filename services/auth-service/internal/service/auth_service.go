@@ -85,10 +85,22 @@ func (s *authService) GetUserByID(id uint) (*domain.User, error) {
 }
 
 // RefreshToken generates new access/refresh tokens for the given refresh token.
-func (s *authService) RefreshToken(refreshToken string) (string, error) {
-	newAccess, err := s.TokenManager.RefreshToken(refreshToken, time.Duration(s.config.AccessTokenTTL)*time.Minute)
+func (s *authService) RefreshToken(refreshToken string) (string, string, error) {
+	// Validate the provided refresh token
+	claims, err := s.TokenManager.ValidateRefreshToken(refreshToken)
 	if err != nil {
-		return "", fmt.Errorf("failed to refresh token: %w", err)
+		return "", "", fmt.Errorf("invalid refresh token: %w", err)
 	}
-	return newAccess, nil
+	// Generate new tokens (rotation): issue a new refresh token and access token
+	newAccess, newRefresh, err := s.TokenManager.GenerateToken(claims.UserID, claims.Username, time.Duration(s.config.AccessTokenTTL)*time.Minute, time.Duration(s.config.RefreshTokenTTL)*time.Minute)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
+	}
+	// Revoke old refresh token by adding to blacklist until it would naturally expire
+	// The TokenManager.RevokeToken expects the token string and TTL; let it compute TTL from token claims
+	_ = s.TokenManager.RevokeToken(refreshToken, 0)
+	// For the service layer we return the new access token and new refresh token together
+	// Caller (handler) can decide how to deliver the refresh token (cookie).
+	// We encode both separated by a pipe as a simple return (handler will parse)
+	return newAccess, newRefresh, nil
 }

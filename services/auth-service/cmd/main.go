@@ -50,12 +50,13 @@ func main() {
 
 	tokenManager := jwt.NewTokenManager(conf.JWTSecretKey, redisClient)
 	svc := service.NewAuthService(repo, tokenManager)
-	h := handler.NewAuthHandler(svc)
+	h := handler.NewAuthHandler(svc, conf)
 
 	r := gin.Default()
 
 	r.POST("/register", h.Register)
 	r.POST("/login", h.Login)
+	r.POST("/refresh", h.Refresh)
 	r.GET("/users/:id", h.GetUser)
 
 	if err := r.Run(":" + conf.ServerPort); err != nil {

@@ -27,7 +27,7 @@
                     <div class="ql-snow ql-container user-select-text" id="article-content" tabindex="-1"
                         aria-readonly="true" style="pointer-events: none;">
                         <div style="pointer-events: auto; user-select: text;">
-                            {{ .post.Content | safeHTML }}
+                            {{ .post.Content | renderSanitizedHTML }}
                         </div>
                     </div>
                 </article>

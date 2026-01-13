@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/microcosm-cc/bluemonday"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
 )
 
@@ -17,9 +18,13 @@ func NewPostService(repo domain.PostRepository) domain.PostService {
 
 // CreatePost creates a new blog post with the given request and author ID.
 func (s *postService) CreatePost(req domain.CreatePostRequest, authorID uint, authorName string) (*domain.Post, error) {
+	// Sanitize user provided HTML content using an UGC policy
+	p := bluemonday.UGCPolicy()
+	safeContent := p.Sanitize(req.Content)
+
 	post := &domain.Post{
 		Title:      req.Title,
-		Content:    req.Content,
+		Content:    safeContent,
 		AuthorID:   authorID,
 		Published:  req.Published,
 		AuthorName: authorName,
@@ -61,7 +66,8 @@ func (s *postService) UpdatePost(id uint, req domain.UpdatePostRequest, authorID
 		post.Title = *req.Title
 	}
 	if req.Content != nil {
-		post.Content = *req.Content
+		p := bluemonday.UGCPolicy()
+		post.Content = p.Sanitize(*req.Content)
 	}
 	if req.Published != nil {
 		post.Published = *req.Published

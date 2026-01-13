@@ -58,9 +58,9 @@
             </span>
         </div>
         <div id="editor" style="height: 700px;font-size: 20px;">
+            {{ if .post }}{{ .post.Content | renderSanitizedHTML }}{{ end }}
         </div>
-        <textarea name="article-content" style='display:none'
-            id="hiddenArea">{{ if .post }}{{ .post.Content }}{{ end }}</textarea>
+        <textarea name="article-content" style='display:none' id="hiddenArea"></textarea>
         <br>
         <div class="d-flex flex-row-reverse">
             <button type="submit" class="btn btn-primary">{{ if .post }}Update{{ else }}Post{{ end }}</button>

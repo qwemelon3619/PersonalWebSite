@@ -148,12 +148,22 @@ func (j *tokenManager) RevokeToken(tokenString string, expiresIn time.Duration) 
 	if j.redis == nil {
 		return errors.New("redis client not configured")
 	}
-	claims, err := j.ValidateAccessToken(tokenString)
+	// Revoke refresh tokens: validate the token as a refresh token first
+	claims, err := j.ValidateRefreshToken(tokenString)
 	if err != nil {
 		return errors.New("invalid token for revocation")
 	}
-	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Sub(time.Now()) > 24*time.Hour {
+	// Only store in Redis until the refresh token would naturally expire
+	if claims.ExpiresAt != nil {
+		expiresAt := claims.ExpiresAt.Time
+		ttl := time.Until(expiresAt)
+		if ttl <= 0 {
+			return nil // already expired
+		}
 		ctx := context.Background()
+		if expiresIn == 0 || expiresIn > ttl {
+			expiresIn = ttl
+		}
 		return j.redis.Set(ctx, j.redisKey(tokenString), "revoked", expiresIn).Err()
 	}
 	return nil

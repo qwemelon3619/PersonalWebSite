@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
+	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
 type RegisterRequest struct {
@@ -16,12 +16,28 @@ type RegisterRequest struct {
 	Password string `form:"password" json:"password" binding:"required"`
 }
 
-func LoginHandler(c *gin.Context) {
+type AuthHandler interface {
+	Login(c *gin.Context)
+	LoginPost(c *gin.Context)
+	Register(c *gin.Context)
+	RegisterPost(c *gin.Context)
+	Logout(c *gin.Context)
+}
+
+type authHandler struct {
+	cfg *config.PostConfig
+}
+
+func NewAuthHandler(cfg *config.PostConfig) AuthHandler {
+	return &authHandler{cfg: cfg}
+}
+
+func (h *authHandler) Login(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.html", gin.H{})
 }
 
-func LoginPostHandler(c *gin.Context) {
-	apiGatewayURL := os.Getenv("API_GATEWAY_URL")
+func (h *authHandler) LoginPost(c *gin.Context) {
+	apiGatewayURL := h.cfg.ApiGatewayURL
 	if apiGatewayURL == "" {
 		apiGatewayURL = "http://localhost:8080"
 	}
@@ -52,46 +68,33 @@ func LoginPostHandler(c *gin.Context) {
 		c.HTML(http.StatusInternalServerError, "login.html", gin.H{"error": "Invalid response from auth-service"})
 		return
 	}
-	fmt.Printf("Login response JSON: %+v\n", result)
 	accessToken, ok := result["token"].(string)
 	if !ok || accessToken == "" {
-		fmt.Println("No token received")
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "No token received"})
-		return
-	}
-	refreshToken, ok := result["refresh_token"].(string)
-	if !ok || refreshToken == "" {
-		fmt.Println("No Refresh token received")
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "No refresh token received"})
 		return
 	}
 	user, ok := result["user"].(map[string]interface{})
 	if !ok || user == nil {
-		fmt.Println("No user info received")
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "No user info received"})
 		return
 	}
-	c.SetCookie("access_token", accessToken, 3600, "/", "", false, true)
-	c.SetCookie("refresh_token", refreshToken, 7200, "/", "", false, true)
-	c.SetCookie("user", user["username"].(string), 7200, "/", "", false, false)
-	c.SetCookie("userID", fmt.Sprintf("%v", user["id"]), 7200, "/", "", false, false)
+	c.SetCookie("access_token", accessToken, 3600, "/", "", true, true)
+	c.SetCookie("user", user["username"].(string), 7200, "/", "", true, true)
+	c.SetCookie("userID", fmt.Sprintf("%v", user["id"]), 7200, "/", "", true, true)
 	c.Redirect(http.StatusFound, "/")
 }
 
-func RegisterHandler(c *gin.Context) {
+func (h *authHandler) Register(c *gin.Context) {
 	c.HTML(http.StatusOK, "register.html", gin.H{})
 }
 
-func RegisterPostHandler(c *gin.Context) {
+func (h *authHandler) RegisterPost(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBind(&req); err != nil {
-		fmt.Println("Failed to bind registration data:", err)
-		c.HTML(http.StatusBadRequest, "register.html", gin.H{
-			"error": "All fields are required and must be valid",
-		})
+		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "All fields are required and must be valid"})
 		return
 	}
-	apiGatewayURL := os.Getenv("API_GATEWAY_URL")
+	apiGatewayURL := h.cfg.ApiGatewayURL
 	if apiGatewayURL == "" {
 		apiGatewayURL = "http://localhost:8080"
 	}
@@ -102,7 +105,6 @@ func RegisterPostHandler(c *gin.Context) {
 	}
 	resp, err := http.Post(apiGatewayURL+"/api/v1/auth/register", "application/json", bytes.NewReader(reqBody))
 	if err != nil || resp.StatusCode != http.StatusCreated {
-		fmt.Printf("Remote registration failed: %v\n", err)
 		c.HTML(http.StatusBadRequest, "register.html", gin.H{"error": "Registration failed at auth-service"})
 		return
 	}
@@ -110,7 +112,7 @@ func RegisterPostHandler(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/login")
 }
 
-func LogoutHandler(c *gin.Context) {
+func (h *authHandler) Logout(c *gin.Context) {
 	c.SetCookie("access_token", "", -1, "/", "", false, true)
 	c.SetCookie("user", "", -1, "/", "", false, false)
 	c.SetCookie("refresh_token", "", -1, "/", "", false, true)

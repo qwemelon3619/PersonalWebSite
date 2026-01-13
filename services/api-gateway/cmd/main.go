@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/jwt"
-	"seungpyo.lee/PersonalWebSite/pkg/middleware"
 	"seungpyo.lee/PersonalWebSite/services/api-gateway/internal/config"
+	internalmw "seungpyo.lee/PersonalWebSite/services/api-gateway/internal/middleware"
 )
 
 func main() {
@@ -25,11 +25,11 @@ func main() {
 	// Post Service proxy
 	r.GET("/api/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
 	r.GET("/api/v1/posts/:id", proxyTo(conf.PostServiceURL+"/posts/:id"))
-	r.POST("/api/v1/posts", middleware.AuthMiddleware(TokenManager), proxyTo(conf.PostServiceURL+"/posts"))
-	r.PUT("/api/v1/posts/:id", middleware.AuthMiddleware(TokenManager), proxyTo(conf.PostServiceURL+"/posts/:id"))
-	r.DELETE("/api/v1/posts/:id", middleware.AuthMiddleware(TokenManager), proxyTo(conf.PostServiceURL+"/posts/:id"))
-
-	// Image Service proxy - internal use only
+	// Use API-gateway specific middleware that will attempt refresh on expired tokens
+	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL)
+	r.POST("/api/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))
+	r.PUT("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.DELETE("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
 
 	log.Printf("API Gateway running on :%s", conf.ServerPort)
 	if err := r.Run(":" + conf.ServerPort); err != nil {
@@ -53,7 +53,17 @@ func proxyTo(target string) gin.HandlerFunc {
 			c.Request.Body = io.NopCloser(strings.NewReader(string(data)))
 		}
 
-		req, err := http.NewRequest(c.Request.Method, url, body)
+		// Preserve original query string when proxying
+		targetURL := url
+		if c.Request.URL != nil && c.Request.URL.RawQuery != "" {
+			if strings.Contains(targetURL, "?") {
+				targetURL = targetURL + "&" + c.Request.URL.RawQuery
+			} else {
+				targetURL = targetURL + "?" + c.Request.URL.RawQuery
+			}
+		}
+
+		req, err := http.NewRequest(c.Request.Method, targetURL, body)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "proxy request error"})
 			return
