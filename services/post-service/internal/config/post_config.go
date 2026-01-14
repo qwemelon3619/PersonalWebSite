@@ -10,16 +10,12 @@ import (
 
 type PostConfig struct {
 	config.GlobalConfig
-	PostgreDBURL      string
-	PostgreDBPort     string
-	PostgreDBUser     string
-	PostgreDBPassword string
-	PostgreDBName     string
-	RedisDBURL        string
-	RedisDBPort       string
-	RedisDBPassword   string
-	RedisMaxRetries   int
-	RedisPoolSize     int
+	PostgreConnectionString string
+	RedisDBURL              string
+	RedisDBPort             string
+	RedisDBPassword         string
+	RedisMaxRetries         int
+	RedisPoolSize           int
 }
 
 func LoadPostConfig() *PostConfig {
@@ -28,17 +24,13 @@ func LoadPostConfig() *PostConfig {
 		log.Println("No .env file found, reading from environment variables")
 	}
 	return &PostConfig{
-		GlobalConfig:      *config.LoadGlobalConfig(),
-		PostgreDBURL:      getEnv("POSTGRE_DB_URL"),
-		PostgreDBPort:     getEnv("POSTGRE_DB_PORT"),
-		PostgreDBUser:     getEnv("POSTGRE_DB_USER"),
-		PostgreDBPassword: getEnv("POSTGRE_DB_PASSWORD"),
-		PostgreDBName:     getEnv("POSTGRE_DB_NAME"),
-		RedisDBURL:        getEnv("REDIS_DB_URL"),
-		RedisDBPort:       getEnv("REDIS_DB_PORT"),
-		RedisDBPassword:   getEnv("REDIS_DB_PASSWORD"),
-		RedisMaxRetries:   3,
-		RedisPoolSize:     10,
+		GlobalConfig:            *config.LoadGlobalConfig(),
+		PostgreConnectionString: getEnv("POSTGRE_CONNECTION_STRING"),
+		RedisDBURL:              getEnv("REDIS_DB_URL"),
+		RedisDBPort:             getEnv("REDIS_DB_PORT"),
+		RedisDBPassword:         getEnv("REDIS_DB_PASSWORD"),
+		RedisMaxRetries:         3,
+		RedisPoolSize:           10,
 	}
 }
 

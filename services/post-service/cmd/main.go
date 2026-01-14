@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -17,16 +16,7 @@ import (
 func main() {
 
 	conf := config.LoadPostConfig()
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		conf.PostgreDBURL,
-		conf.PostgreDBPort,
-		conf.PostgreDBUser,
-		conf.PostgreDBPassword,
-		conf.PostgreDBName,
-	)
-	if dsn == "" {
-		log.Fatal("POSTGRES_DSN env required")
-	}
+	dsn := conf.PostgreConnectionString
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect db: %v", err)

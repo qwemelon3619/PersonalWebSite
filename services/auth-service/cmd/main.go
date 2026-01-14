@@ -20,13 +20,7 @@ func main() {
 
 	conf := config.LoadAuthConfig()
 
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		conf.PostgreDBURL,
-		conf.PostgreDBPort,
-		conf.PostgreDBUser,
-		conf.PostgreDBPassword,
-		conf.PostgreDBName,
-	)
+	dsn := conf.PostgreConnectionString
 	if dsn == "" {
 		log.Fatal("POSTGRES_DSN environment variable is required")
 	}
