@@ -4,6 +4,7 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
+	"seungpyo.lee/PersonalWebSite/pkg/logger"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 	auth "seungpyo.lee/PersonalWebSite/services/web-front/internal/handler/auth"
 	blog "seungpyo.lee/PersonalWebSite/services/web-front/internal/handler/blog"
@@ -15,6 +16,8 @@ func mod(a, b int) int {
 }
 
 func main() {
+	logger := logger.New("info")
+
 	r := gin.Default()
 	r.SetFuncMap(template.FuncMap{
 		"mod": mod,
@@ -51,6 +54,6 @@ func main() {
 	r.GET("/contact", pageH.Contact)
 	r.GET("/opensource", pageH.OpenSource)
 	r.GET("/error", pageH.Error)
-
+	logger.Info("start web server at port " + cfg.GlobalConfig.ServerPort)
 	r.Run(cfg.GlobalConfig.ServerPort)
 }
