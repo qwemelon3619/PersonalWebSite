@@ -2,6 +2,7 @@ package main
 
 import (
 	"html/template"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
@@ -16,7 +17,7 @@ func mod(a, b int) int {
 }
 
 func main() {
-	logger := logger.New("info")
+	logger := logger.New("main")
 
 	r := gin.Default()
 	r.SetFuncMap(template.FuncMap{
@@ -24,15 +25,24 @@ func main() {
 		// renderSanitizedHTML: explicit helper used only for server-sanitized HTML
 		"renderSanitizedHTML": func(s string) template.HTML { return template.HTML(s) },
 	})
-	r.LoadHTMLGlob("/app/services/web-front/templates/html/*.html")
-	r.Static("/static", "/app/services/web-front/static")
-	r.Static("/assets", "/app/services/web-front/templates/assets")
 
 	cfg := config.LoadWebConfig()
 	authH := auth.NewAuthHandler(cfg)
 	blogH := blog.NewBlogHandler(cfg)
 	postH := blog.NewPostHandler(cfg)
 	pageH := page.NewPageHandler(cfg)
+	// Adjust paths for development (air) vs production
+	if os.Getenv("AIR_DEV") == "1" {
+		r.LoadHTMLGlob("templates/html/*.html")
+		r.Static("/static", "static")
+		r.Static("/assets", "templates/assets")
+		r.GET("/register", authH.Register)
+		r.POST("/register", authH.RegisterPost)
+	} else {
+		r.LoadHTMLGlob("/app/services/web-front/templates/html/*.html")
+		r.Static("/static", "/app/services/web-front/static")
+		r.Static("/assets", "/app/services/web-front/templates/assets")
+	}
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
 		logger.Info("health check OK")
@@ -40,7 +50,6 @@ func main() {
 			"status": "ok",
 		})
 	})
-
 	// Define routes
 
 	r.GET("/", pageH.Index)
@@ -48,8 +57,6 @@ func main() {
 
 	r.GET("/login", authH.Login)
 	r.POST("/login", authH.LoginPost)
-	r.GET("/register", authH.Register)
-	r.POST("/register", authH.RegisterPost)
 	r.GET("/logout", authH.Logout)
 
 	r.GET("/blog", blogH.List)
@@ -63,6 +70,10 @@ func main() {
 	r.GET("/contact", pageH.Contact)
 	r.GET("/opensource", pageH.OpenSource)
 	r.GET("/error", pageH.Error)
-	logger.Info("start web server at port " + cfg.GlobalConfig.ServerPort)
-	r.Run("0.0.0.0:" + cfg.GlobalConfig.ServerPort)
+	port := cfg.GlobalConfig.ServerPort
+	if port == "" {
+		port = "3000"
+	}
+	logger.Info("start web server at port " + port)
+	r.Run("0.0.0.0:" + port)
 }

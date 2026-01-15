@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"seungpyo.lee/PersonalWebSite/pkg/jwt"
+	"seungpyo.lee/PersonalWebSite/pkg/logger"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/handler"
@@ -47,7 +48,13 @@ func main() {
 	h := handler.NewAuthHandler(svc, conf)
 
 	r := gin.Default()
-
+	logger := logger.New("main")
+	r.GET("/health", func(c *gin.Context) {
+		logger.Info("health check OK")
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 	r.POST("/register", h.Register)
 	r.POST("/login", h.Login)
 	r.POST("/refresh", h.Refresh)

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"seungpyo.lee/PersonalWebSite/pkg/logger"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/handler"
@@ -16,6 +17,7 @@ import (
 func main() {
 
 	conf := config.LoadPostConfig()
+	logger := logger.New("main")
 	dsn := conf.PostgreConnectionString
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -31,7 +33,12 @@ func main() {
 	h := handler.NewPostHandler(svc)
 
 	r := gin.Default()
-
+	r.GET("/health", func(c *gin.Context) {
+		logger.Info("health check OK")
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
 	r.GET("/posts", h.GetPosts)
 	r.GET("/posts/:id", h.GetPost)
 	r.POST("/posts", h.CreatePost)
