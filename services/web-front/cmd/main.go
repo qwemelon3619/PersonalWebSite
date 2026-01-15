@@ -52,5 +52,5 @@ func main() {
 	r.GET("/opensource", pageH.OpenSource)
 	r.GET("/error", pageH.Error)
 
-	r.Run(":3000")
+	r.Run(cfg.GlobalConfig.ServerPort)
 }
