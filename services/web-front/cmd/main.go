@@ -2,7 +2,6 @@ package main
 
 import (
 	"html/template"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
@@ -31,18 +30,11 @@ func main() {
 	blogH := blog.NewBlogHandler(cfg)
 	postH := blog.NewPostHandler(cfg)
 	pageH := page.NewPageHandler(cfg)
-	// Adjust paths for development (air) vs production
-	if os.Getenv("AIR_DEV") == "1" {
-		r.LoadHTMLGlob("templates/html/*.html")
-		r.Static("/static", "static")
-		r.Static("/assets", "templates/assets")
-		r.GET("/register", authH.Register)
-		r.POST("/register", authH.RegisterPost)
-	} else {
-		r.LoadHTMLGlob("/app/services/web-front/templates/html/*.html")
-		r.Static("/static", "/app/services/web-front/static")
-		r.Static("/assets", "/app/services/web-front/templates/assets")
-	}
+	// Adjust paths for development (debug) vs production
+	r.LoadHTMLGlob("/app/services/web-front/templates/html/*.html")
+	r.Static("/static", "/app/services/web-front/static")
+	r.Static("/assets", "/app/services/web-front/templates/assets")
+
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
 		logger.Info("health check OK")
@@ -58,7 +50,10 @@ func main() {
 	r.GET("/login", authH.Login)
 	r.POST("/login", authH.LoginPost)
 	r.GET("/logout", authH.Logout)
-
+	if gin.Mode() == gin.DebugMode {
+		r.GET("/register", authH.Register)
+		r.POST("/register", authH.RegisterPost)
+	}
 	r.GET("/blog", blogH.List)
 	r.GET("/blog-post", blogH.EditOrNew)
 	r.GET("/blog-edit/:articleNumber", blogH.EditOrNew)
