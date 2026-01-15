@@ -33,6 +33,15 @@ func main() {
 	blogH := blog.NewBlogHandler(cfg)
 	postH := blog.NewPostHandler(cfg)
 	pageH := page.NewPageHandler(cfg)
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		logger.Info("health check OK")
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+
+	// Define routes
 
 	r.GET("/", pageH.Index)
 	r.GET("/about", pageH.About)
