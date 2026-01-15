@@ -55,5 +55,5 @@ func main() {
 	r.GET("/opensource", pageH.OpenSource)
 	r.GET("/error", pageH.Error)
 	logger.Info("start web server at port " + cfg.GlobalConfig.ServerPort)
-	r.Run(cfg.GlobalConfig.ServerPort)
+	r.Run(":" + cfg.GlobalConfig.ServerPort)
 }
