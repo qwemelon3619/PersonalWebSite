@@ -50,10 +50,10 @@ func main() {
 	r.GET("/login", authH.Login)
 	r.POST("/login", authH.LoginPost)
 	r.GET("/logout", authH.Logout)
-	// if gin.Mode() == gin.DebugMode {
-	r.GET("/register", authH.Register)
-	r.POST("/register", authH.RegisterPost)
-	// }
+	if gin.Mode() == gin.DebugMode {
+		r.GET("/register", authH.Register)
+		r.POST("/register", authH.RegisterPost)
+	}
 	r.GET("/blog", blogH.List)
 	r.GET("/blog-post", blogH.EditOrNew)
 	r.GET("/blog-edit/:articleNumber", blogH.EditOrNew)
