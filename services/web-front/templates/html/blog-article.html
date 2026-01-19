@@ -27,11 +27,22 @@
                             </div>
                             <h1 class="fw-bolder mb-1">{{.post.Title}}</h1>
                             <div class="text-muted fst-italic mb-2">{{ .post.UpdatedAt.Format "January 2, 2006" }}</div>
+                            {{ if .post.Tags }}
+                            <div class="mb-3">
+                                {{ range $i, $t := .post.Tags }}
+                                <a href="/blog?tag={{ $t.Name }}"
+                                    class="badge bg-secondary text-decoration-none me-1">{{ $t.Name }}</a>
+                                {{ end }}
+                            </div>
+                            {{ end }}
                         </header>
+                        <!-- Delta JSON is passed through hidden textarea; client will render with Quill -->
+                        <textarea id="deltaArea"
+                            style="display:none">{{ .post.Content | renderSanitizedHTML }}</textarea>
                         <div class="ql-snow ql-container user-select-text article-content" id="article-content"
                             tabindex="-1" aria-readonly="true" style="pointer-events: none;">
-                            <div style="pointer-events: auto; user-select: text;">
-                                {{ .post.Content | renderSanitizedHTML }}
+                            <div style="pointer-events: auto; user-select: text;" id="article-inner">
+                                <!-- rendered content will be injected here -->
                             </div>
                         </div>
                     </article>
@@ -46,29 +57,42 @@
 </section>
 <script src="/templates/js/scripts.js"></script>
 <script>
-    // Dynamic TOC for h1/h2 in article
+    // Dynamic TOC and client-side Quill rendering
     document.addEventListener('DOMContentLoaded', function () {
-        const content = document.getElementById('article-content');
+        const deltaRaw = document.getElementById('deltaArea');
+        const articleInner = document.getElementById('article-inner');
+        const articleContent = document.getElementById('article-content');
+        let renderedHtml = '';
+        if (deltaRaw && deltaRaw.value) {
+            try {
+                const delta = JSON.parse(deltaRaw.value);
+                const options = { readOnly: true, modules: { toolbar: null }, theme: 'snow' };
+                const quillView = new Quill('#article-content', options);
+                quillView.setContents(delta);
+                // After setting contents, extract innerHTML from the editor container
+                renderedHtml = document.querySelector('#article-content .ql-editor').innerHTML;
+                articleInner.innerHTML = renderedHtml;
+            } catch (e) {
+                // fallback: treat as pre-rendered HTML
+                articleInner.innerHTML = deltaRaw.value;
+            }
+        }
+
+        // Build TOC from the rendered content
         const toc = document.getElementById('article-toc');
-        if (!content || !toc) return;
-        const headings = content.querySelectorAll('h1, h2');
-        if (headings.length === 0) return;
-        let tocHtml = '<div class="fw-bold mb-2">On this page</div><ul class="nav flex-column small">';
-        headings.forEach(function (h, idx) {
-            if (!h.id) h.id = 'section-' + idx;
-            tocHtml += `<li class="nav-item ms-${h.tagName === 'H2' ? 3 : 0}"><a class="nav-link px-0" href="#${h.id}">${h.textContent}</a></li>`;
-        });
-        tocHtml += '</ul>';
-        toc.innerHTML = tocHtml;
+        if (articleContent && toc) {
+            const headings = articleContent.querySelectorAll('h1, h2');
+            if (headings.length > 0) {
+                let tocHtml = '<div class="fw-bold mb-2">On this page</div><ul class="nav flex-column small">';
+                headings.forEach(function (h, idx) {
+                    if (!h.id) h.id = 'section-' + idx;
+                    tocHtml += `<li class="nav-item ms-${h.tagName === 'H2' ? 3 : 0}"><a class="nav-link px-0" href="#${h.id}">${h.textContent}</a></li>`;
+                });
+                tocHtml += '</ul>';
+                toc.innerHTML = tocHtml;
+            }
+        }
     });
-    const options = {
-        readOnly: true,
-        modules: {
-            toolbar: null
-        },
-        theme: 'snow'
-    };
-    const quill = new Quill('#article-content', options);
 </script>
 </main>
 

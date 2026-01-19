@@ -47,6 +47,7 @@ func main() {
 
 	r := gin.Default()
 	r.POST("/blog-image", imageHandler.UploadBlogImageHandler)
+	r.DELETE("/blog-image", imageHandler.DeleteBlogImageHandler)
 
 	if err := r.Run(":" + conf.ServerPort); err != nil {
 		log.Fatalf("failed to run server: %v", err)

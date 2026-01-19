@@ -17,6 +17,12 @@
                 <input class="form-control form-control-lg" name="article-title" placeholder="Title"
                     value="{{ if .post }}{{ .post.Title }}{{ end }}">
             </div>
+            <div class="mb-3">
+                <label for="article-tags" class="form-label">Tags</label>
+                <input class="form-control" name="tags" placeholder="comma separated - e.g. go, web, gin"
+                    value="{{ if .post }}{{ range $i, $t := .post.Tags }}{{if $i}}, {{end}}{{ $t.Name }}{{ end }}{{ end }}">
+                <div class="form-text">Separate tags with commas.</div>
+            </div>
             <div id="toolbar-container">
                 <span class="ql-formats">
                     <select class="ql-font"></select>
@@ -59,10 +65,10 @@
                 </span>
             </div>
             <div id="editor" class="article-content" style="min-height: 600px;">
-                {{ if .post }}{{ .post.Content | renderSanitizedHTML }}{{ end }}
             </div>
         </div>
-        <textarea name="article-content" style='display:none' id="hiddenArea"></textarea>
+        <textarea name="article-content" style='display:none'
+            id="hiddenArea">{{ if .post }}{{ .post.Content | renderSanitizedHTML }}{{ end }}</textarea>
         <br>
         <div class="d-flex flex-row-reverse">
             <button type="submit" class="btn btn-primary">{{ if .post }}Update{{ else }}Post{{ end }}</button>
@@ -82,15 +88,23 @@
         theme: 'snow',
     });
     window.addEventListener('DOMContentLoaded', function () {
-        var content = document.getElementById('hiddenArea').value;
-        if (content) {
-            quill.root.innerHTML = content;
+        var hidden = document.getElementById('hiddenArea').value;
+        if (hidden) {
+            try {
+                // If hidden contains a Quill Delta JSON, restore it into the editor
+                var delta = JSON.parse(hidden);
+                quill.setContents(delta);
+            } catch (e) {
+                // Fallback: assume HTML was stored previously
+                quill.root.innerHTML = hidden;
+            }
         }
     });
 
-    $("#blogform").on("submit", function () {
-        var quillText = quill.container.innerHTML
-        document.getElementById("hiddenArea").value = quillText;
+    $("#blogform").on("submit", function (e) {
+        // Submit Quill delta (JSON) so backend can store the delta instead of HTML
+        var delta = quill.getContents();
+        document.getElementById("hiddenArea").value = JSON.stringify(delta);
     })
 </script>
 {{ template "footer.html" . }}

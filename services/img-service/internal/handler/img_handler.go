@@ -41,3 +41,20 @@ func (h *imageHandler) UploadBlogImageHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, img)
 
 }
+
+type deleteImageRequest struct {
+	Path string `json:"path"`
+}
+
+func (h *imageHandler) DeleteBlogImageHandler(c *gin.Context) {
+	var req deleteImageRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.Path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	if err := h.service.DeleteBlogImage(c.Request.Context(), req.Path); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}

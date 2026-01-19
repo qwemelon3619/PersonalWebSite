@@ -25,6 +25,7 @@ func main() {
 	// Post Service proxy
 	r.GET("/api/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
 	r.GET("/api/v1/posts/:id", proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.GET("/api/v1/tags", proxyTo(conf.PostServiceURL+"/tags"))
 	// Use API-gateway specific middleware that will attempt refresh on expired tokens
 	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL)
 	r.POST("/api/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))

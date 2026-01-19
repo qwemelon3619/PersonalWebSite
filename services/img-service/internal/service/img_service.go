@@ -59,3 +59,7 @@ func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data 
 func generateUUID() string {
 	return uuid.New().String()
 }
+
+func (s *ImgService) DeleteBlogImage(ctx context.Context, filePath string) error {
+	return s.Repo.DeleteBlob(ctx, filePath)
+}

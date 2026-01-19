@@ -84,12 +84,25 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 	if search := c.Query("search"); search != "" {
 		filter.Search = &search
 	}
+	if tag := c.Query("tag"); tag != "" {
+		filter.Tag = &tag
+	}
 	posts, err := h.Service.GetPostsByFilter(filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, posts)
+}
+
+// GetTags handles GET /tags and returns all tags.
+func (h *PostHandler) GetTags(c *gin.Context) {
+	tags, err := h.Service.ListTags()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, tags)
 }
 
 // UpdatePost handles PUT /posts/:id. Updates an existing post.

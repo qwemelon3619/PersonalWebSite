@@ -39,5 +39,6 @@ Thumbs.db
 # git
 .github/
 
+# Build outputs and temp folders
 */main
-*/tmp/*
+**/tmp/

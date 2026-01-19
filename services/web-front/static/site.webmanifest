@@ -1,0 +1,13 @@
+{
+    "name": "PYO.xyz Blog",
+    "short_name": "PYO",
+    "icons": [
+        {
+            "src": "/static/favicon.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "/",
+    "display": "standalone"
+}

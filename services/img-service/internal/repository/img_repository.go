@@ -33,3 +33,15 @@ func (r *ImgRepository) UploadBlogImageToBlob(ctx context.Context, file []byte, 
 	fmt.Printf("UploadBlogImageToBlob response: %+v\n", resp)
 	return nil
 }
+
+func (r *ImgRepository) DeleteBlob(ctx context.Context, filePath string) error {
+	if r.BlobClient == nil {
+		return fmt.Errorf("Azure container client is nil")
+	}
+	resp, err := r.BlobClient.DeleteBlob(ctx, r.config.BlobContainerName, filePath, nil)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("DeleteBlob response: %+v\n", resp)
+	return nil
+}

@@ -21,6 +21,12 @@ type Post struct {
 	PublishedAt *time.Time `json:"published_at,omitempty" db:"published_at"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	Tags        []Tag      `json:"tags,omitempty"`
+}
+
+type Tag struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
 }
 
 type BlogHandler interface {
@@ -47,9 +53,18 @@ func (h *blogHandler) List(c *gin.Context) {
 	}
 	// Forward optional search query to API gateway
 	searchQ := c.Query("search")
+	tagQ := c.Query("tag")
 	apiURL := apiGatewayURL + "/api/v1/posts"
+	// Build query params for search and tag
+	q := url.Values{}
 	if searchQ != "" {
-		apiURL = apiURL + "?search=" + url.QueryEscape(searchQ)
+		q.Set("search", searchQ)
+	}
+	if tagQ != "" {
+		q.Set("tag", tagQ)
+	}
+	if enc := q.Encode(); enc != "" {
+		apiURL = apiURL + "?" + enc
 	}
 	resp, err := http.Get(apiURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
@@ -61,6 +76,13 @@ func (h *blogHandler) List(c *gin.Context) {
 	if err := json.NewDecoder(resp.Body).Decode(&posts); err != nil {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
+	}
+	// Fetch available tags for sidebar
+	tagsURL := apiGatewayURL + "/api/v1/tags"
+	var availableTags []Tag
+	if tr, err := http.Get(tagsURL); err == nil && tr.StatusCode == http.StatusOK {
+		defer tr.Body.Close()
+		_ = json.NewDecoder(tr.Body).Decode(&availableTags)
 	}
 	// Pagination logic
 	pageSize := 8
@@ -101,15 +123,17 @@ func (h *blogHandler) List(c *gin.Context) {
 	username, err := c.Cookie("user")
 	isLoggedIn := err == nil && username != ""
 	c.HTML(http.StatusOK, "blog-list.html", gin.H{
-		"posts":       pagedPosts,
-		"username":    username,
-		"isLoggedIn":  isLoggedIn,
-		"search":      searchQ,
-		"page":        page,
-		"totalPages":  totalPages,
-		"pageNumbers": pageNumbers,
-		"prevPage":    prevPage,
-		"nextPage":    nextPage,
+		"posts":         pagedPosts,
+		"tag":           tagQ,
+		"username":      username,
+		"isLoggedIn":    isLoggedIn,
+		"search":        searchQ,
+		"availableTags": availableTags,
+		"page":          page,
+		"totalPages":    totalPages,
+		"pageNumbers":   pageNumbers,
+		"prevPage":      prevPage,
+		"nextPage":      nextPage,
 	})
 }
 
@@ -163,6 +187,7 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 			"PublishedAt": post.PublishedAt,
 			"CreatedAt":   post.CreatedAt,
 			"UpdatedAt":   post.UpdatedAt,
+			"Tags":        post.Tags,
 		},
 	})
 }
@@ -185,7 +210,9 @@ func (h *blogHandler) Article(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
+	// Pass through stored content (which may be Delta JSON or legacy HTML) to client
 	contentStr := post.Content
+
 	username, err := c.Cookie("user")
 	isLoggedIn := err == nil && username != ""
 	c.HTML(http.StatusOK, "blog-article.html", gin.H{
@@ -199,6 +226,7 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"PublishedAt": post.PublishedAt,
 			"CreatedAt":   post.CreatedAt,
 			"UpdatedAt":   post.UpdatedAt,
+			"Tags":        post.Tags,
 		},
 		"username":   username,
 		"isLoggedIn": isLoggedIn,

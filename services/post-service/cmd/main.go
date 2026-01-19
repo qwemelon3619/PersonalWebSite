@@ -24,12 +24,14 @@ func main() {
 		log.Fatalf("failed to connect db: %v", err)
 	}
 	// auto migration
-	if err := db.AutoMigrate(&domain.Post{}); err != nil {
+	if err := db.AutoMigrate(&domain.Post{}, &domain.Tag{}); err != nil {
 		log.Fatalf("failed to migrate db: %v", err)
 	}
 
-	repo := repository.NewPostRepository(db)
-	svc := service.NewPostService(repo)
+	postRepo := repository.NewPostRepository(db)
+	tagRepo := repository.NewTagRepository(db)
+
+	svc := service.NewPostService(postRepo, tagRepo)
 	h := handler.NewPostHandler(svc)
 
 	r := gin.Default()
@@ -41,6 +43,7 @@ func main() {
 	})
 	r.GET("/posts", h.GetPosts)
 	r.GET("/posts/:id", h.GetPost)
+	r.GET("/tags", h.GetTags)
 	r.POST("/posts", h.CreatePost)
 	r.PUT("/posts/:id", h.UpdatePost)
 	r.DELETE("/posts/:id", h.DeletePost)
