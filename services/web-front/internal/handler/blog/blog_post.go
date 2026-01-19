@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -45,7 +46,7 @@ func (h *postHandler) Save(c *gin.Context) {
 
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": "Need to Login"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
 	// Prefer X-User-Id header (set by gateway/middleware); fallback to cookie set at login
@@ -56,12 +57,12 @@ func (h *postHandler) Save(c *gin.Context) {
 		}
 	}
 	if userID == "" {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": "Need to Login"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
 	updatedContent, err := h.processContentImages(content, userID, accessToken)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to process images"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to process images"))
 		return
 	}
 	content = updatedContent
@@ -74,38 +75,45 @@ func (h *postHandler) Save(c *gin.Context) {
 	reqBody, _ := json.Marshal(payload)
 	// Determine if this is a create or update based on hidden form field 'articleNumber'
 	articleNumber := c.PostForm("articleNumber")
-	var method, url string
+	var method, reqURL string
 	if articleNumber == "" {
 		method = "POST"
-		url = apiGatewayURL + "/api/v1/posts"
+		reqURL = apiGatewayURL + "/api/v1/posts"
 	} else {
 		method = "PUT"
-		url = apiGatewayURL + "/api/v1/posts/" + articleNumber
+		reqURL = apiGatewayURL + "/api/v1/posts/" + articleNumber
 	}
 
-	req, err := http.NewRequest(method, url, bytes.NewReader(reqBody))
+	req, err := http.NewRequest(method, reqURL, bytes.NewReader(reqBody))
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to create request"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to save post"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to save post"))
 		return
 	}
 	defer resp.Body.Close()
 	var body Post
 	err = json.NewDecoder(resp.Body).Decode(&body)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to parse response"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to parse response"))
 		return
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errMsg map[string]interface{}
 		json.NewDecoder(resp.Body).Decode(&errMsg)
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": errMsg["error"]})
+		msg := ""
+		if errMsg["error"] != nil {
+			msg = fmt.Sprint(errMsg["error"])
+		}
+		if msg == "" {
+			msg = "Failed to save post"
+		}
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape(msg))
 		return
 	}
 	c.Redirect(http.StatusFound, "/blog/"+strconv.FormatUint(uint64(body.ID), 10))
@@ -260,5 +268,5 @@ func (h *postHandler) uploadBase64Image(imgSrc string, userID string, accessToke
 	}
 	blobBase := h.cfg.BlobBaseUrl
 	// fallback default for local azurite
-	return blobBase + imgResp.URL, nil
+	return blobBase + "/" + imgResp.URL, nil
 }

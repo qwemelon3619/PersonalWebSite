@@ -53,13 +53,13 @@ func (h *blogHandler) List(c *gin.Context) {
 	}
 	resp, err := http.Get(apiURL)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to fetch posts"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
 	}
 	defer resp.Body.Close()
 	var posts []Post
 	if err := json.NewDecoder(resp.Body).Decode(&posts); err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Invalid post data"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
 	// Pagination logic
@@ -140,13 +140,13 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 
 	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to fetch post for editing"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch post for editing"))
 		return
 	}
 	defer resp.Body.Close()
 	var post Post
 	if err := json.NewDecoder(resp.Body).Decode(&post); err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Invalid post data"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
@@ -176,13 +176,13 @@ func (h *blogHandler) Article(c *gin.Context) {
 
 	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to fetch posts"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
 	}
 	defer resp.Body.Close()
 	var post Post
 	if err := json.NewDecoder(resp.Body).Decode(&post); err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Invalid post data"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
 	contentStr := post.Content
@@ -213,13 +213,13 @@ func (h *blogHandler) RemovePage(c *gin.Context) {
 
 	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to fetch posts"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
 	}
 	defer resp.Body.Close()
 	var post Post
 	if err := json.NewDecoder(resp.Body).Decode(&post); err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Invalid post data"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
 
@@ -234,7 +234,7 @@ func (h *blogHandler) Remove(c *gin.Context) {
 	username, err := c.Cookie("user")
 	isLoggedIn := err == nil && username != ""
 	if !isLoggedIn {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": "Need to Login"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
 	apiGatewayURL := h.cfg.ApiGatewayURL
@@ -244,25 +244,32 @@ func (h *blogHandler) Remove(c *gin.Context) {
 	postID := c.Param("articleNumber")
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
-		c.HTML(http.StatusUnauthorized, "error.html", gin.H{"error": "Need to Login"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
 	req, err := http.NewRequest("DELETE", apiGatewayURL+"/api/v1/posts/"+postID, nil)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to create request"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "error.html", gin.H{"error": "Failed to delete post"})
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to delete post"))
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		var errMsg map[string]interface{}
 		json.NewDecoder(resp.Body).Decode(&errMsg)
-		c.HTML(http.StatusBadRequest, "error.html", gin.H{"error": errMsg["error"]})
+		msg := ""
+		if errMsg["error"] != nil {
+			msg = fmt.Sprint(errMsg["error"])
+		}
+		if msg == "" {
+			msg = "Failed to delete post"
+		}
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape(msg))
 		return
 	}
 	c.Redirect(http.StatusFound, "/blog")

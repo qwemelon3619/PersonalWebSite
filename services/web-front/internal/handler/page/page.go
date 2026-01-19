@@ -70,5 +70,14 @@ func (h *pageHandler) OpenSource(c *gin.Context) {
 }
 
 func (h *pageHandler) Error(c *gin.Context) {
-	c.HTML(http.StatusOK, "error.html", gin.H{})
+	// allow passing message via query param `msg` or via context key `error`
+	msg := c.Query("msg")
+	if msg == "" {
+		if v, ok := c.Get("error"); ok {
+			if s, ok := v.(string); ok {
+				msg = s
+			}
+		}
+	}
+	c.HTML(http.StatusOK, "error.html", gin.H{"error": msg})
 }

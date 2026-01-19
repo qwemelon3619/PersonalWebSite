@@ -7,6 +7,9 @@
                     <div class="card-body p-3">
                         <h3 class="mb-4 text-center"><i class="bi bi-person-circle me-2"></i>Login</h3>
                         <form action="/login" method="POST" enctype="multipart/form-data" id="loginform">
+                            {{ if .error }}
+                            <div class="alert alert-danger" role="alert">{{ .error }}</div>
+                            {{ end }}
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <div class="input-group">

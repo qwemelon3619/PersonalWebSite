@@ -56,8 +56,17 @@ func (h *authHandler) LoginPost(c *gin.Context) {
 	})
 	resp, err := http.Post(apiGatewayURL+"/api/v1/auth/login", "application/json", bytes.NewReader(reqBody))
 	if err != nil || resp.StatusCode != http.StatusOK {
+		// try to surface remote error message when possible
+		msg := "Login failed"
+		if resp != nil {
+			var em map[string]interface{}
+			_ = json.NewDecoder(resp.Body).Decode(&em)
+			if em != nil && em["error"] != nil {
+				msg = fmt.Sprint(em["error"])
+			}
+		}
 		fmt.Printf("Remote login failed: %v\n", err)
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": "Login failed"})
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{"error": msg})
 		return
 	}
 	defer resp.Body.Close()
