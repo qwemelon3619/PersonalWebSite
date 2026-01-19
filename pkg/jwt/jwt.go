@@ -6,8 +6,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	jwtlib "github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
 )
+
+// ErrTokenExpired is returned when a token has expired.
+var ErrTokenExpired = errors.New("token is expired")
 
 // Claims defines the custom JWT claims structure.
 type Claims struct {
@@ -27,12 +31,12 @@ type TokenManager interface {
 	IsTokenRevoked(tokenString string) (bool, error)
 }
 
-// NewJWTService creates a new JWTService with the given secret key and Redis client.
+// NewTokenManager creates a new TokenManager with the given secret key and Redis client.
 func NewTokenManager(secretKey string, redisClient *redis.Client) TokenManager {
 	return &tokenManager{secretKey: secretKey, redis: redisClient}
 }
 
-// NewJWTService creates a new JWTService with the given secret key and Redis client.
+// NewTokenManagerWithoutRedis creates a new TokenManager that does not use Redis (useful for Gateway).
 func NewTokenManagerWithoutRedis(secretKey string) TokenManager {
 	return &tokenManager{secretKey: secretKey}
 }
@@ -54,7 +58,7 @@ func (j *tokenManager) GenerateToken(userID uint, username string, accessTokenEx
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessToken := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString([]byte(j.secretKey))
 	if err != nil {
 		return "", "", err
@@ -69,7 +73,7 @@ func (j *tokenManager) GenerateToken(userID uint, username string, accessTokenEx
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
+	refreshToken := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, refreshClaims)
 	refreshTokenStr, err := refreshToken.SignedString([]byte(j.secretKey))
 	if err != nil {
 		return "", "", err
@@ -89,11 +93,11 @@ func (j *tokenManager) RefreshToken(refreshToken string, accessTokenExp time.Dur
 		UserID:   claims.UserID,
 		Username: claims.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(accessTokenExp)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(accessTokenExp)),
+			IssuedAt:  jwtlib.NewNumericDate(time.Now()),
 		},
 	}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessToken := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, accessClaims)
 	accessTokenStr, err := accessToken.SignedString([]byte(j.secretKey))
 	if err != nil {
 		return "", err
@@ -103,7 +107,7 @@ func (j *tokenManager) RefreshToken(refreshToken string, accessTokenExp time.Dur
 
 // ValidateAccessToken parses and validates only the access token (no Redis blacklist check).
 func (j *tokenManager) ValidateAccessToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwtlib.ParseWithClaims(tokenString, &Claims{}, func(token *jwtlib.Token) (interface{}, error) {
 		return []byte(j.secretKey), nil
 	})
 	if err != nil {
@@ -114,7 +118,7 @@ func (j *tokenManager) ValidateAccessToken(tokenString string) (*Claims, error) 
 		return nil, errors.New("invalid token")
 	}
 	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now().UTC()) {
-		return nil, errors.New("token is expired")
+		return nil, ErrTokenExpired
 	}
 	return claims, nil
 }
@@ -130,7 +134,7 @@ func (j *tokenManager) ValidateRefreshToken(tokenString string) (*Claims, error)
 			return nil, errors.New("refresh token is revoked")
 		}
 	}
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwtlib.ParseWithClaims(tokenString, &Claims{}, func(token *jwtlib.Token) (interface{}, error) {
 		return []byte(j.secretKey), nil
 	})
 	if err != nil {

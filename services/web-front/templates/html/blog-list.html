@@ -104,7 +104,10 @@
                         <button id="button-search" class="btn btn-outline-secondary">Search</button>
                     </div>
                     <div class="mb-2">
-                        <div class="small text-muted mb-1">Filter by tag</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="small text-muted mb-1">Filter by tag</div>
+                            <button id="button-clear-tag" class="btn btn-outline-secondary btn-sm">Clear Tag</button>
+                        </div>
                         <div>
                             {{ if .availableTags }}
                             {{ range $i, $t := .availableTags }}
@@ -116,10 +119,10 @@
                             {{ end }}
                         </div>
                     </div>
-                    {{ if .isLoggedIn }}
-                    <a href="/blog-post" class="btn btn-orange w-100">New Post</a>
-                    {{ end }}
                 </div>
+                {{ if .isLoggedIn }}
+                <a href="/blog-post" class="btn btn-orange w-100">New Post</a>
+                {{ end }}
             </div>
         </div>
     </div>
@@ -142,6 +145,17 @@
                 searchButton.click();
             }
         });
+
+        // Clear tag filter while preserving search
+        const clearTagButton = document.getElementById('button-clear-tag');
+        if (clearTagButton) {
+            clearTagButton.addEventListener('click', function () {
+                const params = new URLSearchParams(window.location.search);
+                params.delete('tag');
+                const query = params.toString();
+                window.location.href = '/blog' + (query ? ('?' + query) : '');
+            });
+        }
     });
 </script>
 

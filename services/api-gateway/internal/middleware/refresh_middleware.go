@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,6 +18,11 @@ import (
 // and injects X-User-Id/X-Username into the request headers.
 func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL string, accessTokenTTLMinutes int) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// prevent multiple refresh attempts for the same request
+		if c.GetHeader("X-Refreshed") == "1" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token refresh failed previously"})
+			return
+		}
 		header := c.GetHeader("Authorization")
 		if header == "" || !strings.HasPrefix(header, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid Authorization header"})
@@ -32,7 +38,7 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 			return
 		}
 		// If expired, try refresh
-		if !strings.Contains(err.Error(), "expired") {
+		if !errors.Is(err, jwt.ErrTokenExpired) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid access token"})
 			return
 		}
@@ -45,7 +51,7 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 		// call auth-service /refresh
 		body := map[string]string{"refresh_token": refreshToken}
 		bb, _ := json.Marshal(body)
-		client := &http.Client{Timeout: 5 * time.Second}
+		client := &http.Client{Timeout: 3 * time.Second}
 		req, _ := http.NewRequest("POST", strings.TrimRight(authServiceURL, "/")+"/refresh", bytes.NewReader(bb))
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := client.Do(req)
@@ -73,6 +79,9 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 		c.SetCookie("access_token", tokenVal, maxAge, "/", "", false, true)
 		// update request header and validate to extract claims
 		c.Request.Header.Set("Authorization", "Bearer "+tokenVal)
+		// mark request as refreshed to avoid loops
+		c.Request.Header.Set("X-Refreshed", "1")
+		c.Writer.Header().Set("X-Refreshed", "1")
 		newClaims, err := tokenManager.ValidateAccessToken(tokenVal)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refreshed token invalid"})
