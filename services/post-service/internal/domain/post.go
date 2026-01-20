@@ -6,6 +6,7 @@ type Post struct {
 	ID          uint       `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"type:text;not null"`
 	Content     string     `json:"content" gorm:"type:text;not null"`
+	Thumbnail   string     `json:"thumbnail,omitempty" gorm:"type:text"` // URL to thumbnail image
 	AuthorID    uint       `json:"author_id" gorm:"index"`
 	AuthorName  string     `json:"author_name,omitempty" gorm:"type:text"`
 	Published   bool       `json:"published" gorm:"default:false"`
@@ -25,17 +26,19 @@ type Tag struct {
 }
 
 type CreatePostRequest struct {
-	Title     string   `json:"title" binding:"required,min=1,max=200"`
-	Content   string   `json:"content" binding:"required"`
-	Published bool     `json:"published"`
-	Tags      []string `json:"tags,omitempty"`
+	Title         string   `json:"title" binding:"required,min=1,max=200"`
+	Content       string   `json:"content" binding:"required"`
+	ThumbnailData string   `json:"thumbnail_data,omitempty"`
+	Published     bool     `json:"published"`
+	Tags          []string `json:"tags,omitempty"`
 }
 
 type UpdatePostRequest struct {
-	Title     *string   `json:"title,omitempty" binding:"omitempty,min=1,max=200"`
-	Content   *string   `json:"content,omitempty"`
-	Published *bool     `json:"published,omitempty"`
-	Tags      *[]string `json:"tags,omitempty"`
+	Title         *string   `json:"title,omitempty" binding:"omitempty,min=1,max=200"`
+	Content       *string   `json:"content,omitempty"`
+	ThumbnailData *string   `json:"thumbnail_data,omitempty"`
+	Published     *bool     `json:"published,omitempty"`
+	Tags          *[]string `json:"tags,omitempty"`
 }
 
 type PostFilter struct {
@@ -62,6 +65,8 @@ type TagRepository interface {
 	ReplaceTagsForPost(postID uint, tagNames []string) error
 	GetTagsForPost(postID uint) ([]*Tag, error)
 	ListTags() ([]*Tag, error)
+	DeleteTag(id uint) error
+	DeleteUnusedTag(tagID uint) error
 }
 
 type PostService interface {

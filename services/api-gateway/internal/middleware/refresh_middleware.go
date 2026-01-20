@@ -29,6 +29,7 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 			return
 		}
 		tokenString := strings.TrimPrefix(header, "Bearer ")
+		tokenString = strings.TrimSpace(tokenString)
 		claims, err := tokenManager.ValidateAccessToken(tokenString)
 		if err == nil {
 			// valid
@@ -75,8 +76,7 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 			return
 		}
 		// set cookie with new access token
-		maxAge := accessTokenTTLMinutes * 60
-		c.SetCookie("access_token", tokenVal, maxAge, "/", "", false, true)
+		c.SetCookie("access_token", tokenVal, accessTokenTTLMinutes*60, "/", "", false, true)
 		// update request header and validate to extract claims
 		c.Request.Header.Set("Authorization", "Bearer "+tokenVal)
 		// mark request as refreshed to avoid loops

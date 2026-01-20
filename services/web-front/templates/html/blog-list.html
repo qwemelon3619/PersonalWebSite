@@ -44,7 +44,8 @@
                             <a href="/blog/{{$value.ID}}" class="d-block position-relative">
                                 <img class="w-100 object-fit-cover"
                                     style="height:220px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;"
-                                    src="/assets/blog_img/sample.jpg" alt="{{$value.Title}}" loading="lazy" />
+                                    src="{{ if $value.Thumbnail }}{{ $value.Thumbnail }}{{ else }}/assets/blog_img/sample.jpg{{ end }}"
+                                    alt="{{$value.Title}}" loading="lazy" />
                             </a>
                             <div class="p-4">
                                 <div class="mono-text small mb-2">{{$value.UpdatedAt.Format "Jan 02, 2006"}}</div>
@@ -70,7 +71,7 @@
                     </div>
                     {{ end }}
                 </div>
-
+                <br>
                 <!-- Pagination-->
                 <nav aria-label="Pagination">
                     <hr class="my-0" />

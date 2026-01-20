@@ -18,30 +18,30 @@
 
 <section class="py-5 bg-white bg-opacity-50">
     <div class="container py-5">
-        <h2 class="section-title">Expertise</h2>
+        <h2 class="section-title">Architecture Highlights</h2>
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card-custom p-4 h-100 border-0 shadow-sm">
-                    <div class="text-warning mb-3"><i class="bi bi-cpu-fill fs-1"></i></div>
-                    <h4 class="fw-bold">Backend Architecture</h4>
-                    <p class="text-muted">High-performance microservices using Go and specialized concurrency patterns.
-                    </p>
+                    <div class="text-warning mb-3"><i class="bi bi-diagram-3 fs-1"></i></div>
+                    <h4 class="fw-bold">Microservices Architecture</h4>
+                    <p class="text-muted">Decoupled services (API Gateway, Auth, Post, Image) communicating via HTTP,
+                        enabling independent scaling and deployment.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card-custom p-4 h-100 border-0 shadow-sm">
                     <div class="text-info mb-3"><i class="bi bi-box-seam fs-1"></i></div>
-                    <h4 class="fw-bold">Docker-based Development</h4>
-                    <p class="text-muted">All services are containerized with Docker, enabling consistent local
-                        development and easy deployment using docker-compose.</p>
+                    <h4 class="fw-bold">Container Orchestration</h4>
+                    <p class="text-muted">Docker Compose for local development with health checks, volumes, and
+                        networking, simulating production environments.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card-custom p-4 h-100 border-0 shadow-sm">
-                    <div class="text-primary mb-3"><i class="bi bi-cloud-arrow-up fs-1"></i></div>
-                    <h4 class="fw-bold">Azure Deployment & Hosting</h4>
-                    <p class="text-muted">Production-ready deployments are automated on Microsoft Azure using Bicep
-                        templates for scalable, cloud-native hosting.</p>
+                    <div class="text-primary mb-3"><i class="bi bi-gear fs-1"></i></div>
+                    <h4 class="fw-bold">Azure Infrastructure Automation</h4>
+                    <p class="text-muted">Automated deployments using Azure Bicep templates for scalable, cloud-native
+                        infrastructure with blob storage and databases.</p>
                 </div>
             </div>
         </div>
@@ -57,8 +57,19 @@
             {{ if .posts }}
             {{ range $key, $value := .posts }}
             <div class="col-lg-4">
-                <div class="card-custom h-100 border-0 shadow-sm">
-                    <div class="p-4 pb-2">
+                <div class="card-custom h-100 border-0 shadow-sm d-flex flex-column">
+                    {{ if $value.Thumbnail }}
+                    <a href="/blog/{{$value.ID}}" class="d-block">
+                        <img src="{{ $value.Thumbnail }}" alt="{{ $value.Title }}" class="w-100 object-fit-cover"
+                            style="height:180px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;">
+                    </a>
+                    {{ else }}
+                    <a href="/blog/{{$value.ID}}" class="d-block">
+                        <img src="/assets/blog_img/sample.jpg" alt="{{ $value.Title }}" class="w-100 object-fit-cover"
+                            style="height:180px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;">
+                    </a>
+                    {{ end }}
+                    <div class="p-4 pb-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <div class="text-muted small">By {{ $value.AuthorName }}</div>
                             <div class="text-muted small">{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</div>
@@ -66,7 +77,9 @@
                         <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
                             <h5 class="fw-bold mb-2 text-truncate">{{ $value.Title }}</h5>
                         </a>
-                        <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
+                        <div class="mt-auto">
+                            <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
+                        </div>
                     </div>
                 </div>
             </div>

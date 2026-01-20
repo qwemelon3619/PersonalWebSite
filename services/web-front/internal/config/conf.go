@@ -10,8 +10,8 @@ import (
 
 type PostConfig struct {
 	config.GlobalConfig
-	BlobBaseUrl   string
 	ApiGatewayURL string
+	ImageBaseURL  string
 }
 
 func LoadWebConfig() *PostConfig {
@@ -21,8 +21,8 @@ func LoadWebConfig() *PostConfig {
 	}
 	return &PostConfig{
 		GlobalConfig:  *config.LoadGlobalConfig(),
-		BlobBaseUrl:   getEnv("IMG_BLOB_BASE_URL"),
 		ApiGatewayURL: getEnv("API_GATEWAY_URL"),
+		ImageBaseURL:  getEnv("IMAGE_BASE_URL"),
 	}
 }
 
@@ -33,4 +33,11 @@ func getEnv(key string) string {
 	} else {
 		panic("critical config missing: " + key)
 	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return defaultValue
 }

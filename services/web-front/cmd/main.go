@@ -2,6 +2,8 @@ package main
 
 import (
 	"html/template"
+	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
@@ -53,6 +55,13 @@ func main() {
 	if gin.Mode() == gin.DebugMode {
 		r.GET("/register", authH.Register)
 		r.POST("/register", authH.RegisterPost)
+	} else {
+		r.GET("/register", func(c *gin.Context) {
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Not in production mode"))
+		})
+		r.POST("/register", func(c *gin.Context) {
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Not in production mode"))
+		})
 	}
 	r.GET("/blog", blogH.List)
 	r.GET("/blog-post", blogH.EditOrNew)

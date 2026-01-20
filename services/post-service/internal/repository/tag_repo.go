@@ -93,3 +93,25 @@ func (r *tagRepository) ListTags() ([]*domain.Tag, error) {
 	}
 	return tags, nil
 }
+
+// DeleteTag deletes a tag by its ID.
+func (r *tagRepository) DeleteTag(id uint) error {
+	if err := r.db.Delete(&domain.Tag{}, id).Error; err != nil {
+		return fmt.Errorf("failed to delete tag: %w", err)
+	}
+	return nil
+}
+
+// DeleteUnusedTag deletes the tag if it is not associated with any posts.
+func (r *tagRepository) DeleteUnusedTag(tagID uint) error {
+	var count int64
+	if err := r.db.Model(&domain.Post{}).Joins("JOIN post_tags ON posts.id = post_tags.post_id").Where("post_tags.tag_id = ?", tagID).Count(&count).Error; err != nil {
+		return fmt.Errorf("failed to count tag usage: %w", err)
+	}
+	if count == 0 {
+		if err := r.db.Delete(&domain.Tag{}, tagID).Error; err != nil {
+			return fmt.Errorf("failed to delete unused tag: %w", err)
+		}
+	}
+	return nil
+}

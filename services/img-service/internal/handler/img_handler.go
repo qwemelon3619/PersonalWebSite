@@ -13,7 +13,7 @@ type imageHandler struct {
 }
 
 type uploadImageRequest struct {
-	Filename string `json:"filename"`
+	Filename string `json:"filename"` //relative path
 	UserId   string `json:"userId"`
 	Data     string `json:"data"` // base64 string
 }
@@ -43,7 +43,7 @@ func (h *imageHandler) UploadBlogImageHandler(c *gin.Context) {
 }
 
 type deleteImageRequest struct {
-	Path string `json:"path"`
+	Path string `json:"path"` //relative path eg) /1/blog/img/uuid.jpg
 }
 
 func (h *imageHandler) DeleteBlogImageHandler(c *gin.Context) {

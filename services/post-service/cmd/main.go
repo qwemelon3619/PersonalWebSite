@@ -31,7 +31,7 @@ func main() {
 	postRepo := repository.NewPostRepository(db)
 	tagRepo := repository.NewTagRepository(db)
 
-	svc := service.NewPostService(postRepo, tagRepo)
+	svc := service.NewPostService(postRepo, tagRepo, conf)
 	h := handler.NewPostHandler(svc)
 
 	r := gin.Default()

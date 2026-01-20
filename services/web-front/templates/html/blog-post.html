@@ -18,6 +18,12 @@
                     value="{{ if .post }}{{ .post.Title }}{{ end }}">
             </div>
             <div class="mb-3">
+                <label for="thumbnail" class="form-label">Thumbnail</label>
+                <input type="file" class="form-control" name="thumbnail" accept="image/*">
+                {{ if .post.Thumbnail }}<img src="{{ .post.Thumbnail }}" alt="Current thumbnail"
+                    style="max-width: 200px; margin-top: 10px;">{{ end }}
+            </div>
+            <div class="mb-3">
                 <label for="article-tags" class="form-label">Tags</label>
                 <input class="form-control" name="tags" placeholder="comma separated - e.g. go, web, gin"
                     value="{{ if .post }}{{ range $i, $t := .post.Tags }}{{if $i}}, {{end}}{{ $t.Name }}{{ end }}{{ end }}">

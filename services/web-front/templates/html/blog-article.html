@@ -35,6 +35,11 @@
                                 {{ end }}
                             </div>
                             {{ end }}
+                            {{ if .post.Thumbnail }}
+                            <img src="{{ .post.Thumbnail }}" alt="Thumbnail" class="img-fluid mb-3"
+                                style="max-width: 100%; height: auto;">
+                            {{ end }}
+
                         </header>
                         <!-- Delta JSON is passed through hidden textarea; client will render with Quill -->
                         <textarea id="deltaArea"

@@ -2,8 +2,10 @@ package handler
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -31,9 +33,17 @@ func (h *postHandler) Save(c *gin.Context) {
 		apiGatewayURL = "http://localhost:8080"
 	}
 	title := c.PostForm("article-title")
+	if title == "" {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Title is required"))
+		return
+	}
 	published := true
 
 	content := c.PostForm("article-content")
+	if content == "" {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Content is required"))
+		return
+	}
 
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
@@ -54,21 +64,12 @@ func (h *postHandler) Save(c *gin.Context) {
 	// Support Quill Delta JSON that contains embedded images (data URLs).
 	// Try to parse incoming content as JSON delta (object with ops or ops array).
 	var parsed interface{}
-	var uploadedPaths []string
 	if err := json.Unmarshal([]byte(content), &parsed); err == nil {
-		// It's valid JSON — treat as Delta and process image ops; also collect uploaded paths
-		updatedDelta, paths, err := h.processDeltaImages(parsed, userID, accessToken)
-		if err != nil {
-			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to process images in delta"))
-			return
-		}
-		uploadedPaths = paths
+		// It's valid JSON — treat as Delta
 		// Marshal back to JSON string to send to Post service
-		if b, err := json.Marshal(updatedDelta); err == nil {
+		if b, err := json.Marshal(parsed); err == nil {
 			content = string(b)
 		} else {
-			// cleanup uploaded images
-			h.rollbackUploadedImages(uploadedPaths, accessToken)
 			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to encode delta"))
 			return
 		}
@@ -78,13 +79,31 @@ func (h *postHandler) Save(c *gin.Context) {
 		return
 	}
 
-	payload := map[string]interface{}{
-		"title":     title,
-		"content":   content,
-		"published": published,
+	// Handle thumbnail upload
+	var thumbnailData string
+	if file, err := c.FormFile("thumbnail"); err == nil && file != nil {
+		// Read file content
+		fileContent, err := file.Open()
+		if err != nil {
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to read thumbnail file"))
+			return
+		}
+		defer fileContent.Close()
+		data, err := io.ReadAll(fileContent)
+		if err != nil {
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to read thumbnail data"))
+			return
+		}
+		// Convert to base64
+		mimeType := file.Header.Get("Content-Type")
+		if mimeType == "" {
+			mimeType = "image/png" // default
+		}
+		thumbnailData = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(data))
 	}
 	// Parse comma-separated tags input and include as []string
 	tagsInput := c.PostForm("tags")
+	tagsPayload := []string{}
 	if tagsInput != "" {
 		// split by comma and trim spaces
 		var tags []string
@@ -95,9 +114,17 @@ func (h *postHandler) Save(c *gin.Context) {
 			}
 		}
 		if len(tags) > 0 {
-			payload["tags"] = tags
+			tagsPayload = tags
 		}
 	}
+	payload := map[string]interface{}{
+		"title":          title,
+		"tags":           tagsPayload,
+		"content":        content,
+		"thumbnail_data": thumbnailData,
+		"published":      published,
+	}
+
 	reqBody, _ := json.Marshal(payload)
 	// Determine if this is a create or update based on hidden form field 'articleNumber'
 	articleNumber := c.PostForm("articleNumber")
@@ -119,8 +146,6 @@ func (h *postHandler) Save(c *gin.Context) {
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		// cleanup uploaded images
-		h.rollbackUploadedImages(uploadedPaths, accessToken)
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to save post"))
 		return
 	}
@@ -141,8 +166,6 @@ func (h *postHandler) Save(c *gin.Context) {
 		if msg == "" {
 			msg = "Failed to save post"
 		}
-		// rollback uploaded images
-		h.rollbackUploadedImages(uploadedPaths, accessToken)
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape(msg))
 		return
 	}

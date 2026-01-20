@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ type Post struct {
 	ID          uint       `json:"id" db:"id"`
 	Title       string     `json:"title" db:"title"`
 	Content     string     `json:"content" db:"content"`
+	Thumbnail   string     `json:"thumbnail,omitempty" db:"thumbnail"`
 	AuthorID    uint       `json:"author_id" db:"author_id"`
 	AuthorName  string     `json:"author_name,omitempty" db:"author_name"`
 	Published   bool       `json:"published" db:"published"`
@@ -76,6 +78,12 @@ func (h *blogHandler) List(c *gin.Context) {
 	if err := json.NewDecoder(resp.Body).Decode(&posts); err != nil {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
+	}
+	// Convert thumbnails to full URLs if relative
+	for i := range posts {
+		if posts[i].Thumbnail != "" && !strings.HasPrefix(posts[i].Thumbnail, "http") {
+			posts[i].Thumbnail = h.cfg.ImageBaseURL + posts[i].Thumbnail
+		}
 	}
 	// Fetch available tags for sidebar
 	tagsURL := apiGatewayURL + "/api/v1/tags"
@@ -173,6 +181,15 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
+	// Convert thumbnail to full URL if relative
+	if post.Thumbnail != "" && !strings.HasPrefix(post.Thumbnail, "http") {
+		if h.cfg.ImageBaseURL == "" {
+			h.cfg.ImageBaseURL = "/data"
+		}
+		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
+	}
+	// Process content for display
+	contentStr := h.processContentForDisplay(post.Content)
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
 		"username":      username,
 		"isLoggedIn":    isLoggedIn,
@@ -180,7 +197,8 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 		"post": gin.H{
 			"ID":          post.ID,
 			"Title":       post.Title,
-			"Content":     post.Content,
+			"Content":     contentStr,
+			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
 			"Published":   post.Published,
@@ -210,8 +228,12 @@ func (h *blogHandler) Article(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post data"))
 		return
 	}
+	// Convert thumbnail to full URL if relative
+	if post.Thumbnail != "" && !strings.HasPrefix(post.Thumbnail, "http") {
+		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
+	}
 	// Pass through stored content (which may be Delta JSON or legacy HTML) to client
-	contentStr := post.Content
+	contentStr := h.processContentForDisplay(post.Content)
 
 	username, err := c.Cookie("user")
 	isLoggedIn := err == nil && username != ""
@@ -220,6 +242,7 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"ID":          post.ID,
 			"Title":       post.Title,
 			"Content":     contentStr,
+			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
 			"Published":   post.Published,
@@ -301,4 +324,40 @@ func (h *blogHandler) Remove(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/blog")
+}
+
+// processContentForDisplay processes Quill Delta JSON and prefixes image URLs with baseURL.
+func (h *blogHandler) processContentForDisplay(content string) string {
+	var delta map[string]interface{}
+	if err := json.Unmarshal([]byte(content), &delta); err != nil {
+		// Not JSON, return as is
+		return content
+	}
+	ops, ok := delta["ops"].([]interface{})
+	if !ok {
+		return content
+	}
+	for i, op := range ops {
+		opMap, ok := op.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		insert, ok := opMap["insert"]
+		if !ok {
+			continue
+		}
+		if insertMap, ok := insert.(map[string]interface{}); ok {
+			if imageURL, ok := insertMap["image"].(string); ok && imageURL != "" {
+				// Prefix relative path with base URL
+				insertMap["image"] = h.cfg.ImageBaseURL + imageURL
+				ops[i] = opMap
+			}
+		}
+	}
+	// Marshal back to JSON
+	updated, err := json.Marshal(delta)
+	if err != nil {
+		return content
+	}
+	return string(updated)
 }

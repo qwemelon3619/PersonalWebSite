@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
@@ -43,6 +44,11 @@ func (h *pageHandler) Index(c *gin.Context) {
 			} else {
 				posts = allPosts
 			}
+		}
+	}
+	for i := range posts {
+		if posts[i].Thumbnail != "" && !strings.HasPrefix(posts[i].Thumbnail, "http") {
+			posts[i].Thumbnail = h.cfg.ImageBaseURL + posts[i].Thumbnail
 		}
 	}
 	c.HTML(http.StatusOK, "index.html", gin.H{

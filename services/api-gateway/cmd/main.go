@@ -21,6 +21,7 @@ func main() {
 	// Auth Service proxy
 	r.POST("/api/v1/auth/login", proxyTo(conf.AuthServiceURL+"/login"))
 	r.POST("/api/v1/auth/register", proxyTo(conf.AuthServiceURL+"/register"))
+	r.POST("/api/v1/auth/refresh", proxyTo(conf.AuthServiceURL+"/refresh"))
 
 	// Post Service proxy
 	r.GET("/api/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
@@ -31,6 +32,10 @@ func main() {
 	r.POST("/api/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))
 	r.PUT("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
 	r.DELETE("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
+
+	// Img Service proxy (internal, no auth required for delete)
+	r.POST("/api/v1/images", proxyTo(conf.ImgServiceURL+"/blog-image"))
+	r.DELETE("/api/v1/images", proxyTo(conf.ImgServiceURL+"/blog-image"))
 
 	log.Printf("API Gateway running on :%s", conf.ServerPort)
 	if err := r.Run(":" + conf.ServerPort); err != nil {

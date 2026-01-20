@@ -91,6 +91,7 @@ func (r *postRepository) Update(post *domain.Post) error {
 	}
 	result := r.db.Model(post).Updates(map[string]interface{}{
 		"title":        post.Title,
+		"thumbnail":    post.Thumbnail,
 		"content":      post.Content,
 		"published":    post.Published,
 		"published_at": post.PublishedAt,
