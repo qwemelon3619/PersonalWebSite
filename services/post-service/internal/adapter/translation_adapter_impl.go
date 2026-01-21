@@ -37,7 +37,11 @@ func (t *translationAdapterImpl) splitIntoSentences(text string) []string {
 	// Split by line breaks first to preserve structure
 	lines := strings.Split(text, "\n")
 
-	for _, line := range lines {
+	for i, line := range lines {
+		if i > 0 {
+			// Add line break between lines
+			sentences = append(sentences, "")
+		}
 		line = strings.TrimSpace(line)
 		if line == "" {
 			// Preserve empty lines (line breaks)
@@ -46,20 +50,20 @@ func (t *translationAdapterImpl) splitIntoSentences(text string) []string {
 		}
 
 		// Split line into sentences using regex
-		// Regex to match sentence endings (., !, ?) followed by space or end of line
-		sentenceRegex := regexp.MustCompile(`([.!?]+)\s*`)
+		// Regex to match sentence endings (., !, ?) followed by space (at least one)
+		sentenceRegex := regexp.MustCompile(`([.!?]+)\s+`)
 		parts := sentenceRegex.Split(line, -1)
 		delimiters := sentenceRegex.FindAllString(line, -1)
 
-		for i, part := range parts {
+		for j, part := range parts {
 			part = strings.TrimSpace(part)
 			if part == "" {
 				continue
 			}
 
 			sentence := part
-			if i < len(delimiters) {
-				sentence += delimiters[i]
+			if j < len(delimiters) {
+				sentence += delimiters[j]
 			}
 
 			if sentence != "" {
@@ -184,112 +188,6 @@ func (t *translationAdapterImpl) TranslateDelta(content string) (string, error) 
 	if !ok {
 		return "", fmt.Errorf("invalid delta format: missing ops")
 	}
-	var segments []string
-	var allPlaceholders [][]string
-	for _, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
-		}
-		if sStr, ok := insert.(string); ok {
-			masked, placeholders := t.maskImgSrc(sStr)
-			segments = append(segments, masked)
-			allPlaceholders = append(allPlaceholders, placeholders)
-		}
-	}
-	if len(segments) == 0 {
-		return content, nil
-	}
-
-	// Split segments into sentences to preserve line breaks and improve translation quality
-	var allSentences []string
-	var sentenceToSegment []int // maps sentence index to segment index
-
-	for segmentIdx, seg := range segments {
-		sentences := t.splitIntoSentences(seg)
-		for _, sentence := range sentences {
-			allSentences = append(allSentences, sentence)
-			sentenceToSegment = append(sentenceToSegment, segmentIdx)
-		}
-	}
-
-	// Filter out empty sentences (line breaks) for translation
-	var nonEmptySentences []string
-	var nonEmptyIndices []int
-	for i, sentence := range allSentences {
-		if strings.TrimSpace(sentence) != "" {
-			nonEmptySentences = append(nonEmptySentences, sentence)
-			nonEmptyIndices = append(nonEmptyIndices, i)
-		}
-	}
-
-	if len(nonEmptySentences) == 0 {
-		return content, nil
-	}
-
-	translatedSentences, err := t.CallBatch(nonEmptySentences, "EN")
-	if err != nil {
-		return "", err
-	}
-
-	if len(translatedSentences) != len(nonEmptySentences) {
-		return "", fmt.Errorf("translation sentence count mismatch: got %d, want %d", len(translatedSentences), len(nonEmptySentences))
-	}
-
-	// Reconstruct all sentences with translations, preserving empty strings (line breaks)
-	reconstructedSentences := make([]string, len(allSentences))
-	translatedIdx := 0
-	for i := range allSentences {
-		if strings.TrimSpace(allSentences[i]) == "" {
-			// Keep empty strings (line breaks) as-is
-			reconstructedSentences[i] = allSentences[i]
-		} else {
-			// Use translated version
-			reconstructedSentences[i] = translatedSentences[translatedIdx]
-			translatedIdx++
-		}
-	}
-
-	// Reconstruct segments by grouping sentences back to their original segments
-	translatedSegments := make([]string, len(segments))
-	sentenceIdx := 0
-
-	for segmentIdx := range segments {
-		var segmentParts []string
-		for sentenceIdx < len(reconstructedSentences) && sentenceToSegment[sentenceIdx] == segmentIdx {
-			segmentParts = append(segmentParts, reconstructedSentences[sentenceIdx])
-			sentenceIdx++
-		}
-
-		// Join segment parts back together
-		// Empty strings represent line breaks, so join with newlines where appropriate
-		var result strings.Builder
-		for i, part := range segmentParts {
-			if part == "" {
-				// Empty string means line break
-				if i < len(segmentParts)-1 {
-					result.WriteString("\n")
-				}
-			} else {
-				if i > 0 && segmentParts[i-1] != "" {
-					// Add space between sentences if not after a line break
-					result.WriteString(" ")
-				}
-				result.WriteString(part)
-			}
-		}
-		translatedSeg := result.String()
-		// Unmask img src
-		translatedSeg = t.unmaskImgSrc(translatedSeg, allPlaceholders[segmentIdx])
-		translatedSegments[segmentIdx] = translatedSeg
-	}
-
-	// Update the delta with translated segments
-	segmentIdx := 0
 	for i, op := range ops {
 		opMap, ok := op.(map[string]interface{})
 		if !ok {
@@ -299,13 +197,44 @@ func (t *translationAdapterImpl) TranslateDelta(content string) (string, error) 
 		if !ok {
 			continue
 		}
-		if _, ok := insert.(string); ok {
-			opMap["insert"] = translatedSegments[segmentIdx]
+		if sStr, ok := insert.(string); ok && sStr != "" {
+			// 문장 단위로 나누기
+			sentences := t.splitIntoSentences(sStr)
+			var translatedSentences []string
+			for _, sentence := range sentences {
+				if strings.TrimSpace(sentence) == "" {
+					// 줄바꿈 유지
+					translatedSentences = append(translatedSentences, sentence)
+				} else {
+					// img 태그 제외하고 번역
+					masked, placeholders := t.maskImgSrc(sentence)
+					translated, err := t.TranslateSingle(masked)
+					if err != nil {
+						return "", err
+					}
+					unmasked := t.unmaskImgSrc(translated, placeholders)
+					translatedSentences = append(translatedSentences, unmasked)
+				}
+			}
+			// 재구성하여 글 형식 보존
+			var result strings.Builder
+			for j, sent := range translatedSentences {
+				if sent == "" {
+					// 줄바꿈
+					if j < len(translatedSentences)-1 {
+						result.WriteString("\n")
+					}
+				} else {
+					if j > 0 && translatedSentences[j-1] != "" {
+						result.WriteString(" ")
+					}
+					result.WriteString(sent)
+				}
+			}
+			opMap["insert"] = result.String()
 			ops[i] = opMap
-			segmentIdx++
 		}
 	}
-
 	delta["ops"] = ops
 	updated, err := json.Marshal(delta)
 	if err != nil {
