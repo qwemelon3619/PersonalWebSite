@@ -1,11 +1,17 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
+)
 
 type Post struct {
 	ID          uint       `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"type:text;not null"`
 	Content     string     `json:"content" gorm:"type:text;not null"`
+	EnTitle     string     `json:"en_title,omitempty" gorm:"type:text"`
+	EnContent   string     `json:"en_content,omitempty" gorm:"type:text"`
 	Thumbnail   string     `json:"thumbnail,omitempty" gorm:"type:text"` // URL to thumbnail image
 	AuthorID    uint       `json:"author_id" gorm:"index"`
 	AuthorName  string     `json:"author_name,omitempty" gorm:"type:text"`
@@ -25,36 +31,10 @@ type Tag struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type CreatePostRequest struct {
-	Title         string   `json:"title" binding:"required,min=1,max=200"`
-	Content       string   `json:"content" binding:"required"`
-	ThumbnailData string   `json:"thumbnail_data,omitempty"`
-	Published     bool     `json:"published"`
-	Tags          []string `json:"tags,omitempty"`
-}
-
-type UpdatePostRequest struct {
-	Title         *string   `json:"title,omitempty" binding:"omitempty,min=1,max=200"`
-	Content       *string   `json:"content,omitempty"`
-	ThumbnailData *string   `json:"thumbnail_data,omitempty"`
-	Published     *bool     `json:"published,omitempty"`
-	Tags          *[]string `json:"tags,omitempty"`
-}
-
-type PostFilter struct {
-	AuthorID  *uint   `json:"author_id"`
-	Published *bool   `json:"published"`
-	Limit     int     `json:"limit"`
-	Offset    int     `json:"offset"`
-	OrderBy   string  `json:"order_by"`
-	Search    *string `json:"search"`
-	Tag       *string `json:"tag"`
-}
-
 type PostRepository interface {
 	Create(post *Post) error
 	GetByID(id uint) (*Post, error)
-	GetAll(filter PostFilter) ([]*Post, error)
+	GetAll(filter model.PostFilter) ([]*Post, error)
 	Update(post *Post) error
 	Delete(id uint) error
 	GetByAuthorID(authorID uint) ([]*Post, error)
@@ -70,10 +50,10 @@ type TagRepository interface {
 }
 
 type PostService interface {
-	CreatePost(req CreatePostRequest, authorID uint, authorName string) (*Post, error)
+	CreatePost(req model.CreatePostRequest, authorID uint, authorName string) (*Post, error)
 	GetPost(id uint) (*Post, error)
-	GetPostsByFilter(filter PostFilter) ([]*Post, error)
-	UpdatePost(id uint, req UpdatePostRequest, authorID uint) (*Post, error)
+	GetPostsByFilter(filter model.PostFilter) ([]*Post, error)
+	UpdatePost(id uint, req model.UpdatePostRequest, authorID uint) (*Post, error)
 	DeletePost(id, authorID uint) error
 	ListTags() ([]*Tag, error)
 }

@@ -15,7 +15,9 @@ import (
 type Post struct {
 	ID          uint       `json:"id" db:"id"`
 	Title       string     `json:"title" db:"title"`
+	EnTitle     string     `json:"en_title" db:"en_title"`
 	Content     string     `json:"content" db:"content"`
+	EnContent   string     `json:"en_content" db:"en_content"`
 	Thumbnail   string     `json:"thumbnail,omitempty" db:"thumbnail"`
 	AuthorID    uint       `json:"author_id" db:"author_id"`
 	AuthorName  string     `json:"author_name,omitempty" db:"author_name"`
@@ -190,6 +192,10 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 	}
 	// Process content for display
 	contentStr := h.processContentForDisplay(post.Content)
+	enContentStr := ""
+	if post.EnContent != "" {
+		enContentStr = h.processContentForDisplay(post.EnContent)
+	}
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
 		"username":      username,
 		"isLoggedIn":    isLoggedIn,
@@ -197,7 +203,9 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 		"post": gin.H{
 			"ID":          post.ID,
 			"Title":       post.Title,
+			"EnTitle":     post.EnTitle,
 			"Content":     contentStr,
+			"EnContent":   enContentStr,
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
@@ -234,6 +242,10 @@ func (h *blogHandler) Article(c *gin.Context) {
 	}
 	// Pass through stored content (which may be Delta JSON or legacy HTML) to client
 	contentStr := h.processContentForDisplay(post.Content)
+	enContentStr := ""
+	if post.EnContent != "" {
+		enContentStr = h.processContentForDisplay(post.EnContent)
+	}
 
 	username, err := c.Cookie("user")
 	isLoggedIn := err == nil && username != ""
@@ -241,7 +253,9 @@ func (h *blogHandler) Article(c *gin.Context) {
 		"post": gin.H{
 			"ID":          post.ID,
 			"Title":       post.Title,
+			"EnTitle":     post.EnTitle,
 			"Content":     contentStr,
+			"EnContent":   enContentStr,
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
@@ -348,9 +362,22 @@ func (h *blogHandler) processContentForDisplay(content string) string {
 		}
 		if insertMap, ok := insert.(map[string]interface{}); ok {
 			if imageURL, ok := insertMap["image"].(string); ok && imageURL != "" {
-				// Prefix relative path with base URL
-				insertMap["image"] = h.cfg.ImageBaseURL + imageURL
-				ops[i] = opMap
+				// Skip absolute URLs and data URLs
+				if strings.HasPrefix(imageURL, "http") || strings.HasPrefix(imageURL, "data:") {
+					// leave as-is
+				} else {
+					base := h.cfg.ImageBaseURL
+					if base == "" {
+						base = "/data"
+					}
+					// Ensure single slash between base and imageURL
+					if strings.HasPrefix(imageURL, "/") {
+						insertMap["image"] = base + imageURL
+					} else {
+						insertMap["image"] = strings.TrimRight(base, "/") + "/" + imageURL
+					}
+					ops[i] = opMap
+				}
 			}
 		}
 	}

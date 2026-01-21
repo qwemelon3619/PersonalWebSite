@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
 )
 
 type postRepository struct {
@@ -46,7 +47,7 @@ func (r *postRepository) GetByID(id uint) (*domain.Post, error) {
 }
 
 // GetAll returns all posts matching the given filter.
-func (r *postRepository) GetAll(filter domain.PostFilter) ([]*domain.Post, error) {
+func (r *postRepository) GetAll(filter model.PostFilter) ([]*domain.Post, error) {
 	var posts []*domain.Post
 	query := r.db.Model(&domain.Post{}).Preload("Tags")
 	if filter.AuthorID != nil {
@@ -91,8 +92,10 @@ func (r *postRepository) Update(post *domain.Post) error {
 	}
 	result := r.db.Model(post).Updates(map[string]interface{}{
 		"title":        post.Title,
+		"en_title":     post.EnTitle,
 		"thumbnail":    post.Thumbnail,
 		"content":      post.Content,
+		"en_content":   post.EnContent,
 		"published":    post.Published,
 		"published_at": post.PublishedAt,
 		"updated_at":   post.UpdatedAt,
@@ -120,7 +123,7 @@ func (r *postRepository) Delete(id uint) error {
 
 // GetByAuthorID returns all posts by a specific author.
 func (r *postRepository) GetByAuthorID(authorID uint) ([]*domain.Post, error) {
-	filter := domain.PostFilter{
+	filter := model.PostFilter{
 		AuthorID: &authorID,
 		OrderBy:  "created_at DESC",
 	}

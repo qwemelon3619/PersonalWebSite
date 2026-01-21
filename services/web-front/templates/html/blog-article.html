@@ -25,7 +25,11 @@
                                 </div>
                                 {{ end }}
                             </div>
-                            <h1 class="fw-bolder mb-1">{{.post.Title}}</h1>
+                            <h1 class="fw-bolder mb-1">
+                                <span id="title-ko" style="display:none">{{.post.Title}}</span>
+                                <span id="title-en">{{if
+                                    .post.EnTitle}}{{.post.EnTitle}}{{else}}{{.post.Title}}{{end}}</span>
+                            </h1>
                             <div class="text-muted fst-italic mb-2">{{ .post.UpdatedAt.Format "January 2, 2006" }}</div>
                             {{ if .post.Tags }}
                             <div class="mb-3">
@@ -41,14 +45,25 @@
                             {{ end }}
 
                         </header>
-                        <!-- Delta JSON is passed through hidden textarea; client will render with Quill -->
-                        <textarea id="deltaArea"
+                        <!-- Language toggle -->
+                        <div class="mb-3">
+                            <div class="btn-group" role="group" aria-label="Language toggle">
+                                <button id="lang-en" class="btn btn-outline-secondary btn-sm active">English</button>
+                                <button id="lang-ko" class="btn btn-outline-secondary btn-sm">Korean</button>
+                            </div>
+                        </div>
+
+                        <!-- Delta JSONs for both languages are passed through hidden textareas; client will render with Quill -->
+                        <textarea id="deltaArea-ko"
                             style="display:none">{{ .post.Content | renderSanitizedHTML }}</textarea>
+                        <textarea id="deltaArea-en"
+                            style="display:none">{{ .post.EnContent | renderSanitizedHTML }}</textarea>
                         <div class="ql-snow ql-container user-select-text article-content" id="article-content"
                             tabindex="-1" aria-readonly="true" style="pointer-events: none;">
-                            <div style="pointer-events: auto; user-select: text;" id="article-inner">
-                                <!-- rendered content will be injected here -->
-                            </div>
+                            <!-- Quill will render content directly here -->
+                        </div>
+                        <div id="translation-notice" class="mt-3 text-muted small" style="display: none;">
+                            Translated by DeepL
                         </div>
                     </article>
                 </div>
@@ -63,28 +78,46 @@
 <script src="/templates/js/scripts.js"></script>
 <script>
     // Dynamic TOC and client-side Quill rendering
-    document.addEventListener('DOMContentLoaded', function () {
-        const deltaRaw = document.getElementById('deltaArea');
-        const articleInner = document.getElementById('article-inner');
-        const articleContent = document.getElementById('article-content');
-        let renderedHtml = '';
-        if (deltaRaw && deltaRaw.value) {
-            try {
-                const delta = JSON.parse(deltaRaw.value);
-                const options = { readOnly: true, modules: { toolbar: null }, theme: 'snow' };
-                const quillView = new Quill('#article-content', options);
-                quillView.setContents(delta);
-                // After setting contents, extract innerHTML from the editor container
-                renderedHtml = document.querySelector('#article-content .ql-editor').innerHTML;
-                articleInner.innerHTML = renderedHtml;
-            } catch (e) {
-                // fallback: treat as pre-rendered HTML
-                articleInner.innerHTML = deltaRaw.value;
-            }
-        }
+    let articleQuill; // Quill instance for article content
 
-        // Build TOC from the rendered content
+    function parseDelta(raw) {
+        if (!raw || !raw.value) return null;
+        try {
+            return JSON.parse(raw.value);
+        } catch (e) {
+            console.error("Failed to parse Delta JSON:", e);
+            return null;
+        }
+    }
+
+    // Default render English
+    function updateArticle(lang) {
+        const deltaRawKo = document.getElementById('deltaArea-ko');
+        const deltaRawEn = document.getElementById('deltaArea-en');
+        let delta = null;
+        if (lang === 'en') {
+            delta = parseDelta(deltaRawEn);
+        }
+        else if (lang === 'ko') {
+            delta = parseDelta(deltaRawKo);
+        }
+        // Fallback logic if selected language is empty
+        if (!delta) {
+            console.warn(`Content for language '${lang}' is empty. Falling back to default.`);
+            delta = parseDelta(deltaRawEn) || parseDelta(deltaRawKo);
+        }
+        if (delta) {
+            articleQuill.setContents(delta);
+        } else {
+            articleQuill.setContents([]);
+        }
+        // Update TOC after rendering
+        setTimeout(() => buildTOC(lang), 100);
+    }
+
+    function buildTOC(lang = 'en') {
         const toc = document.getElementById('article-toc');
+        const articleContent = document.getElementById('article-content');
         if (articleContent && toc) {
             const headings = articleContent.querySelectorAll('h1, h2');
             if (headings.length > 0) {
@@ -95,8 +128,52 @@
                 });
                 tocHtml += '</ul>';
                 toc.innerHTML = tocHtml;
+            } else {
+                toc.innerHTML = '';
             }
         }
+    }
+
+    // Initial render and event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Quill instance
+        articleQuill = new Quill('#article-content', {
+            readOnly: true,
+            modules: { toolbar: null },
+            theme: 'snow'
+        });
+
+        updateArticle('en');
+
+        // Show translation notice for English
+        const translationNotice = document.getElementById('translation-notice');
+        if (translationNotice) translationNotice.style.display = 'block';
+
+        // Language toggle
+        const btnKo = document.getElementById('lang-ko');
+        const btnEn = document.getElementById('lang-en');
+        const titleKo = document.getElementById('title-ko');
+        const titleEn = document.getElementById('title-en');
+
+        btnKo.addEventListener('click', function () {
+            btnKo.classList.add('active');
+            btnEn.classList.remove('active');
+            updateArticle('ko');
+            if (titleKo) titleKo.style.display = '';
+            if (titleEn) titleEn.style.display = 'none';
+            if (translationNotice) translationNotice.style.display = 'none';
+        });
+        btnEn.addEventListener('click', function () {
+            btnEn.classList.add('active');
+            btnKo.classList.remove('active');
+            updateArticle('en');
+            if (titleKo) titleKo.style.display = 'none';
+            if (titleEn) titleEn.style.display = '';
+            if (translationNotice) translationNotice.style.display = 'block';
+        });
+
+        // Build TOC from the rendered content
+        buildTOC('en');
     });
 </script>
 </main>

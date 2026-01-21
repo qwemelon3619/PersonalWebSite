@@ -1,52 +1,84 @@
 
 
-# Personal Blog MSA - Project Overview
+# Personal Blog MSA
 
-This repository contains a Go-based microservices blog platform designed for local development and deployment to Azure. It uses a small set of services (gateway, auth, posts, image uploader, web front) following a Clean Architecture pattern.
+A Go-based microservices blog platform featuring multilingual support, automatic translation, and cloud-native architecture.
 
 ## Architecture
 
-- **API Gateway**: The single entry point for all external requests. Proxies to auth/post services and applies JWT authentication middleware.
-- **Auth Service**: Handles JWT-based authentication, registration/login, token refresh, and blacklist management.
-- **Post Service**: Handles CRUD operations for blog posts.
-- **Shared Package (pkg)**: Reusable code for JWT, middleware, DB, config, etc.
-- **DB/Redis**: Uses PostgreSQL and Redis containers.
-# Personal Blog MSA - Project Overview
+This project follows a microservices architecture with clean separation of concerns, enabling independent scaling and deployment of each service.
 
-This repository contains a Go-based microservices blog platform designed for local development and deployment to Azure. It follows Clean Architecture and is split into small services to keep responsibilities clear.
+### Services
 
-Overview of services
+- **API Gateway** (`services/api-gateway`): Single entry point using Gin framework. Handles JWT token validation, request routing, and proxies to backend services.
+- **Auth Service** (`services/auth-service`): Manages user authentication, registration, login, JWT token generation/refresh, and Redis-backed token blacklisting.
+- **Post Service** (`services/post-service`): Handles blog post CRUD operations, tag management, and integrates with translation and image services.
+- **Image Service** (`services/img-service`): Dedicated image upload service that stores files in Azure Blob Storage (Azurite for local development).
+- **Web Front** (`services/web-front`): Server-rendered web interface using Go HTML templates, providing the public blog website.
 
-- api-gateway: Gin-based gateway that validates access tokens and proxies requests to backend services.
-- auth-service: Login, register, refresh tokens; Redis-backed refresh blacklist.
-- post-service: Blog CRUD and image upload helper (uploads to Azure Blob Storage).
-- web-front: Server-rendered templates and static assets (public website).
+### Shared Components
 
-Tech
+- **Shared Packages** (`pkg/`): Reusable components including JWT utilities, middleware, database connections, configuration management, and logging.
+- **Infrastructure**: Docker Compose orchestration with PostgreSQL database, Redis cache, and Azurite blob storage emulator.
 
-- Go 1.25+, Gin
-- PostgreSQL, Redis
-- Docker / Docker Compose
-- Azure Blob Storage (Azurite for local dev, real account for prod)
+## Features
 
-Quick start (local)
+### Core Functionality
 
-1. Ensure Docker is running.
+- **User Authentication**: JWT-based login/registration with secure token management
+- **Blog Management**: Full CRUD operations for blog posts with rich text editing (Quill.js)
+- **Image Handling**: Seamless image uploads integrated into blog content
+- **Tag System**: Post categorization and filtering by tags
 
-2. Provide environment variables used by services (examples in `docker-compose.yml` and each service `internal/config`):
+### Advanced Features
 
-	- `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_ACCESS_KEY`, `AZURE_BLOB_CONTAINER` (image uploads)
-	- `POSTGRE_DB_URL`, `POSTGRE_DB_PORT`, `POSTGRE_DB_USER`, `POSTGRE_DB_PASSWORD`, `POSTGRE_DB_NAME`
-	- `REDIS_DB_URL`, `REDIS_DB_PORT`, `REDIS_DB_PASSWORD`
-	- `JWT_SECRET_KEY`
+- **Multilingual Support**: Automatic translation between Korean and English using DeepL API
+- **Dynamic Content Rendering**: Client-side language switching with preserved formatting
+- **Responsive UI**: Bootstrap-based design with table of contents generation
+- **Cloud Storage**: Azure Blob Storage integration for scalable media hosting
 
-3. Start all services (recommended):
+### Technical Highlights
+
+- **Clean Architecture**: Each service follows domain-driven design with clear separation of handlers, services, and repositories
+- **Microservices Communication**: HTTP-based inter-service communication via API Gateway
+- **Containerization**: Full Docker support for consistent development and deployment environments
+- **Scalability**: Stateless services with externalized state management
+
+## Technology Stack
+
+- **Backend**: Go 1.21+, Gin web framework
+- **Database**: PostgreSQL for persistent data, Redis for caching and token management
+- **Storage**: Azure Blob Storage (Azurite for local development)
+- **Frontend**: Server-side rendered HTML with Bootstrap CSS, Quill.js for rich text editing
+- **Infrastructure**: Docker & Docker Compose for container orchestration
+- **External APIs**: DeepL for machine translation
+
+## Quick Start
+
+1. Ensure Docker and Docker Compose are installed
+2. Clone the repository and navigate to the project root
+3. Configure environment variables (see `docker-compose.yml` for required variables)
+4. Run the application:
 
 ```bash
 docker-compose up --build
 ```
 
-4. Access the web front at `http://localhost:3000` and the API Gateway at `http://localhost:8080`.
+5. Access the blog at `http://localhost:3000`
+
+## Project Structure
+
+```
+├── services/
+│   ├── api-gateway/     # API Gateway service
+│   ├── auth-service/    # Authentication service
+│   ├── post-service/    # Blog post management
+│   ├── img-service/     # Image upload service
+│   └── web-front/       # Web frontend
+├── pkg/                 # Shared packages
+├── docker-compose.yml   # Container orchestration
+└── README.md
+```
 
 Hot-reload for web-front (dev)
 

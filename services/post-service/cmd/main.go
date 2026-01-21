@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/adapter"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/handler"
@@ -31,7 +32,10 @@ func main() {
 	postRepo := repository.NewPostRepository(db)
 	tagRepo := repository.NewTagRepository(db)
 
-	svc := service.NewPostService(postRepo, tagRepo, conf)
+	imageAdapter := adapter.NewImageAdapter(conf)
+	transAdapter := adapter.NewTranslationAdapter(conf)
+
+	svc := service.NewPostService(postRepo, tagRepo, conf, imageAdapter, transAdapter)
 	h := handler.NewPostHandler(svc)
 
 	r := gin.Default()

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"seungpyo.lee/PersonalWebSite/services/img-service/internal/model"
 	"seungpyo.lee/PersonalWebSite/services/img-service/internal/service"
 )
 
@@ -12,18 +13,12 @@ type imageHandler struct {
 	service service.ImgService
 }
 
-type uploadImageRequest struct {
-	Filename string `json:"filename"` //relative path
-	UserId   string `json:"userId"`
-	Data     string `json:"data"` // base64 string
-}
-
 func NewBlogImageHandler(service *service.ImgService) *imageHandler {
 	return &imageHandler{service: *service}
 }
 
 func (h *imageHandler) UploadBlogImageHandler(c *gin.Context) {
-	var req uploadImageRequest
+	var req model.UploadImageRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
@@ -42,12 +37,8 @@ func (h *imageHandler) UploadBlogImageHandler(c *gin.Context) {
 
 }
 
-type deleteImageRequest struct {
-	Path string `json:"path"` //relative path eg) /1/blog/img/uuid.jpg
-}
-
 func (h *imageHandler) DeleteBlogImageHandler(c *gin.Context) {
-	var req deleteImageRequest
+	var req model.DeleteImageRequest
 	if err := c.ShouldBindJSON(&req); err != nil || req.Path == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return

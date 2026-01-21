@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/util"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
 )
 
 // PostHandler handles HTTP requests for blog posts.
@@ -21,7 +22,7 @@ func NewPostHandler(service domain.PostService) *PostHandler {
 
 // CreatePost handles POST /posts. Creates a new blog post.
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	var req domain.CreatePostRequest
+	var req model.CreatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -58,7 +59,7 @@ func (h *PostHandler) GetPost(c *gin.Context) {
 
 // GetPosts handles GET /posts. Lists posts with optional filters.
 func (h *PostHandler) GetPosts(c *gin.Context) {
-	var filter domain.PostFilter
+	var filter model.PostFilter
 	if authorIDStr := c.Query("author_id"); authorIDStr != "" {
 		authorID, err := strconv.ParseUint(authorIDStr, 10, 64)
 		if err == nil {
@@ -112,7 +113,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	var req domain.UpdatePostRequest
+	var req model.UpdatePostRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

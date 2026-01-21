@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/model"
 )
 
 // AuthHandler handles authentication-related HTTP requests.
@@ -22,7 +23,7 @@ func NewAuthHandler(service domain.AuthService, cfg *config.AuthConfig) *AuthHan
 
 // Register handles POST /register for user registration.
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req domain.RegisterRequest
+	var req model.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -43,7 +44,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // Login handles POST /login for user authentication.
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req domain.LoginRequest
+	var req model.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

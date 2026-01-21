@@ -7,6 +7,7 @@ import (
 	"seungpyo.lee/PersonalWebSite/pkg/jwt"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/model"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/util"
 )
 
@@ -23,7 +24,7 @@ func NewAuthService(repo domain.UserRepository, tokenManager jwt.TokenManager) d
 }
 
 // Login authenticates a user by username and password.
-func (s *authService) Login(email string, password string) (*domain.LoginResponse, error) {
+func (s *authService) Login(email string, password string) (*model.LoginResponse, error) {
 	user, err := s.repo.GetByEmail(email)
 	if err != nil {
 		return nil, fmt.Errorf("invalid username or password")
@@ -36,7 +37,7 @@ func (s *authService) Login(email string, password string) (*domain.LoginRespons
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
-	resp := &domain.LoginResponse{
+	resp := &model.LoginResponse{
 		Token:        accessToken,
 		ExpiresAt:    time.Now().Add(time.Duration(s.config.AccessTokenTTL) * time.Minute).Unix(),
 		RefreshToken: refreshToken,
@@ -46,7 +47,7 @@ func (s *authService) Login(email string, password string) (*domain.LoginRespons
 }
 
 // Register creates a new user account.
-func (s *authService) Register(req domain.RegisterRequest) (*domain.User, error) {
+func (s *authService) Register(req model.RegisterRequest) (*domain.User, error) {
 	if user, err := s.GetUserByEmail(req.Email); err == nil && user != nil {
 		return nil, fmt.Errorf("email already in use")
 	}

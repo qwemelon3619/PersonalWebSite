@@ -73,6 +73,8 @@ services:
       - REDIS_DB_PASSWORD=
       - API_GATEWAY_URL=http://api-gateway:8080
       - SERVER_PORT=8082
+      - TRANSLATION_API_URL=https://api-free.deepl.com/v2/translate
+      - TRANSLATION_API_KEY=your-deepl-api-key
     depends_on:
       postgres:
         condition: service_healthy

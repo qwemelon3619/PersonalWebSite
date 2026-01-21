@@ -1,41 +1,47 @@
 package service
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"strings"
 
 	"github.com/microcosm-cc/bluemonday"
+	"seungpyo.lee/PersonalWebSite/pkg/logger"
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/adapter"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
 )
 
 type postService struct {
-	postRepo domain.PostRepository
-	tagRepo  domain.TagRepository
-	config   *config.PostConfig
+	postRepo     domain.PostRepository
+	tagRepo      domain.TagRepository
+	config       *config.PostConfig
+	imageAdapter adapter.ImageAdapter
+	transAdapter adapter.TranslationAdapter
+	logger       *logger.Logger
 }
 
 // NewPostService creates a new PostService with the given repository.
-func NewPostService(postRepo domain.PostRepository, tagRepo domain.TagRepository, config *config.PostConfig) domain.PostService {
-	return &postService{postRepo: postRepo, tagRepo: tagRepo, config: config}
+func NewPostService(postRepo domain.PostRepository, tagRepo domain.TagRepository, config *config.PostConfig, imageAdapter adapter.ImageAdapter, transAdapter adapter.TranslationAdapter) domain.PostService {
+	return &postService{postRepo: postRepo, tagRepo: tagRepo, config: config, imageAdapter: imageAdapter, transAdapter: transAdapter, logger: logger.New("info")}
 }
 
 // CreatePost creates a new blog post with the given request and author ID.
-func (s *postService) CreatePost(req domain.CreatePostRequest, authorID uint, authorName string) (*domain.Post, error) {
+func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, authorName string) (*domain.Post, error) {
 	// Process Delta JSON for image uploads BEFORE sanitization
 	var processedContent string
 	var err error
-	processedContent, err = s.processDeltaForImages(req.Content, authorID)
+	processedContent, err = s.imageAdapter.ProcessDeltaForImages(req.Content, authorID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process images in content: %w", err)
 	}
 
+	// Sanitize content
+	p := bluemonday.UGCPolicy()
+	safeContent := p.Sanitize(processedContent)
+
 	var thumbnailURL string
 	if req.ThumbnailData != "" {
-		url, err := s.callImgServiceToUpload(req.ThumbnailData, authorID)
+		url, err := s.imageAdapter.UploadImage(req.ThumbnailData, authorID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload thumbnail: %w", err)
 		}
@@ -46,7 +52,7 @@ func (s *postService) CreatePost(req domain.CreatePostRequest, authorID uint, au
 
 	post := &domain.Post{
 		Title:      req.Title,
-		Content:    processedContent,
+		Content:    safeContent,
 		Thumbnail:  thumbnailURL,
 		AuthorID:   authorID,
 		Published:  req.Published,
@@ -60,6 +66,28 @@ func (s *postService) CreatePost(req domain.CreatePostRequest, authorID uint, au
 	if len(req.Tags) > 0 {
 		if err := s.tagRepo.AttachTagsToPost(post.ID, req.Tags); err != nil {
 			return nil, fmt.Errorf("failed to attach tags: %w", err)
+		}
+	}
+
+	// Auto-translate if translation service configured
+	if s.config != nil && s.config.TranslationAPIURL != "" {
+		if t, err := s.transAdapter.TranslateSingle(post.Title); err == nil {
+			post.EnTitle = t
+			s.logger.Info(fmt.Sprintf("Translated title to: %s", t))
+		} else {
+			s.logger.Error(fmt.Sprintf("Failed to translate title: %v", err))
+		}
+
+		if t, err := s.transAdapter.TranslateDelta(processedContent); err == nil {
+			post.EnContent = t
+			s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
+		} else {
+			s.logger.Error(fmt.Sprintf("Failed to translate content: %v", err))
+		}
+		// persist translations
+		if err := s.postRepo.Update(post); err != nil {
+			// log but don't fail creation
+			s.logger.Error(fmt.Sprintf("Failed to persist translations: %v", err))
 		}
 	}
 	return post, nil
@@ -79,7 +107,7 @@ func (s *postService) GetPost(id uint) (*domain.Post, error) {
 }
 
 // GetPostsByFilter returns a list of posts matching the given filter.
-func (s *postService) GetPostsByFilter(filter domain.PostFilter) ([]*domain.Post, error) {
+func (s *postService) GetPostsByFilter(filter model.PostFilter) ([]*domain.Post, error) {
 	posts, err := s.postRepo.GetAll(filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get posts: %w", err)
@@ -88,7 +116,7 @@ func (s *postService) GetPostsByFilter(filter domain.PostFilter) ([]*domain.Post
 }
 
 // UpdatePost updates an existing post if the author matches.
-func (s *postService) UpdatePost(id uint, req domain.UpdatePostRequest, authorID uint) (*domain.Post, error) {
+func (s *postService) UpdatePost(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) {
 	post, err := s.postRepo.GetByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get post: %w", err)
@@ -99,18 +127,21 @@ func (s *postService) UpdatePost(id uint, req domain.UpdatePostRequest, authorID
 	if req.Title != nil {
 		post.Title = *req.Title
 	}
+	var safeContent string
+	var processedContent string
 	if req.Content != nil {
 		// Process Delta JSON for image uploads BEFORE sanitization
-		processedContent, err := s.processDeltaForImages(*req.Content, authorID)
+		var err error
+		processedContent, err = s.imageAdapter.ProcessDeltaForImages(*req.Content, authorID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process images in content: %w", err)
 		}
 		p := bluemonday.UGCPolicy()
-		safeContent := p.Sanitize(processedContent)
+		safeContent = p.Sanitize(processedContent)
 		post.Content = safeContent
 	}
 	if req.ThumbnailData != nil && *req.ThumbnailData != "" {
-		url, err := s.callImgServiceToUpload(*req.ThumbnailData, authorID)
+		url, err := s.imageAdapter.UploadImage(*req.ThumbnailData, authorID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to upload thumbnail: %w", err)
 		}
@@ -121,6 +152,30 @@ func (s *postService) UpdatePost(id uint, req domain.UpdatePostRequest, authorID
 	}
 	if err := s.postRepo.Update(post); err != nil {
 		return nil, fmt.Errorf("failed to update post: %w", err)
+	}
+
+	// If translation service is configured, always try to translate
+	if s.config != nil && s.config.TranslationAPIURL != "" {
+		if req.Title != nil {
+			if t, err := s.transAdapter.TranslateSingle(post.Title); err == nil {
+				post.EnTitle = t
+				s.logger.Info(fmt.Sprintf("Translated title to: %s", t))
+			} else {
+				s.logger.Error(fmt.Sprintf("Failed to translate title: %v", err))
+			}
+		}
+		if req.Content != nil {
+			if t, err := s.transAdapter.TranslateDelta(processedContent); err == nil {
+				post.EnContent = t
+				s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
+			} else {
+				s.logger.Error(fmt.Sprintf("Failed to translate content: %v", err))
+			}
+		}
+		// Persist translations if any were updated
+		if err := s.postRepo.Update(post); err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to persist translations after update: %v", err))
+		}
 	}
 
 	// Replace tags if provided
@@ -156,8 +211,7 @@ func (s *postService) DeletePost(id, authorID uint) error {
 	}
 	// Delete thumbnail image via img-service if exists
 	if post.Thumbnail != "" {
-		fmt.Printf("Deleting thumbnail: %s\n", post.Thumbnail)
-		if err := s.callImgServiceToDelete(post.Thumbnail); err != nil {
+		if err := s.imageAdapter.DeleteImage(post.Thumbnail); err != nil {
 			// Log error but proceed with post deletion
 			fmt.Printf("Failed to delete thumbnail via img-service: %v\n", err)
 		}
@@ -165,11 +219,9 @@ func (s *postService) DeletePost(id, authorID uint) error {
 		fmt.Println("No thumbnail to delete")
 	}
 	// Delete images in content via img-service if any
-	imageURLs := s.extractImageURLsFromContent(post.Content)
-	fmt.Printf("Extracted image URLs: %v\n", imageURLs)
+	imageURLs := s.imageAdapter.ExtractImageURLsFromContent(post.Content)
 	for _, url := range imageURLs {
-		fmt.Printf("Deleting content image: %s\n", url)
-		if err := s.callImgServiceToDelete(url); err != nil {
+		if err := s.imageAdapter.DeleteImage(url); err != nil {
 			// Log error but proceed
 			fmt.Printf("Failed to delete content image via img-service: %v\n", err)
 		}
@@ -181,141 +233,4 @@ func (s *postService) DeletePost(id, authorID uint) error {
 // ListTags returns all available tags.
 func (s *postService) ListTags() ([]*domain.Tag, error) {
 	return s.tagRepo.ListTags()
-}
-
-// processDeltaForImages processes Quill Delta JSON, uploads data URL images, and replaces with URLs.
-func (s *postService) processDeltaForImages(content string, userID uint) (string, error) {
-	var delta map[string]interface{}
-	if err := json.Unmarshal([]byte(content), &delta); err != nil {
-		// Not JSON, return as is
-		return content, nil
-	}
-	ops, ok := delta["ops"].([]interface{})
-	if !ok {
-		return content, nil
-	}
-	for i, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
-		}
-		if insertMap, ok := insert.(map[string]interface{}); ok {
-			if imageData, ok := insertMap["image"].(string); ok && strings.HasPrefix(imageData, "data:") {
-				// Upload the data URL image
-				uploadedURL, err := s.callImgServiceToUpload(imageData, userID)
-				if err != nil {
-					return "", fmt.Errorf("failed to upload image: %w", err)
-				}
-				// Replace with URL
-				insertMap["image"] = uploadedURL
-				ops[i] = opMap
-			}
-		}
-	}
-	// Marshal back to JSON
-	updated, err := json.Marshal(delta)
-	if err != nil {
-		return "", err
-	}
-	return string(updated), nil
-}
-
-// extractImageURLsFromContent parses Quill Delta JSON and extracts image URLs.
-func (s *postService) extractImageURLsFromContent(content string) []string {
-	var delta map[string]interface{}
-	if err := json.Unmarshal([]byte(content), &delta); err != nil {
-		return nil
-	}
-	ops, ok := delta["ops"].([]interface{})
-	if !ok {
-		return nil
-	}
-	var urls []string
-	for _, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
-		}
-		if insertMap, ok := insert.(map[string]interface{}); ok {
-			if imageURL, ok := insertMap["image"].(string); ok && imageURL != "" {
-				// Include both HTTP URLs and relative paths
-				if strings.HasPrefix(imageURL, "http") || strings.HasPrefix(imageURL, "/") {
-					urls = append(urls, imageURL)
-				}
-			}
-		}
-	}
-	return urls
-}
-
-// callImgServiceToUpload sends a upload request to img-service via api-gateway and returns the URL.
-func (s *postService) callImgServiceToUpload(data string, userID uint) (string, error) {
-	url := fmt.Sprintf("%s/api/v1/images", s.config.ApiGatewayURL) //upload endpoint
-	fmt.Printf("Calling img-service to upload: %s\n", url)
-	reqBody := map[string]interface{}{
-		"filename": "thumbnail.jpg", // dummy filename
-		"userId":   fmt.Sprintf("%d", userID),
-		"data":     data,
-	}
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", err
-	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return "", fmt.Errorf("img-service returned status %d", resp.StatusCode)
-	}
-	var imgResp struct {
-		URL string `json:"URL"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&imgResp); err != nil {
-		return "", err
-	}
-	fmt.Printf("Successfully uploaded thumbnail: %s\n", imgResp.URL)
-	return imgResp.URL, nil
-}
-
-// callImgServiceToDelete sends a delete request to img-service via api-gateway for the given filename.
-func (s *postService) callImgServiceToDelete(filename string) error {
-	// Assume filename is already a relative path (e.g., /1/blog/img/uuid.jpg)
-	// No URL conversion needed with nginx proxy
-	url := fmt.Sprintf("%s/api/v1/images", s.config.ApiGatewayURL)
-	fmt.Printf("Calling img-service to delete: %s\n", url)
-	reqBody := map[string]string{"path": filename} //relative path
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return err
-	}
-	req, err := http.NewRequest("DELETE", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("img-service returned status %d", resp.StatusCode)
-	}
-	fmt.Printf("Successfully deleted image: %s\n", filename)
-	return nil
 }

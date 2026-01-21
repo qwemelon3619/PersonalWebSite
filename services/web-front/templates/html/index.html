@@ -75,7 +75,8 @@
                             <div class="text-muted small">{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</div>
                         </div>
                         <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
-                            <h5 class="fw-bold mb-2 text-truncate">{{ $value.Title }}</h5>
+                            <h5 class="fw-bold mb-2 text-truncate">{{ if $value.EnTitle }}{{ $value.EnTitle }}{{ else
+                                }}{{ $value.Title }}{{ end }}</h5>
                         </a>
                         <div class="mt-auto">
                             <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>

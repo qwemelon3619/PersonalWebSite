@@ -17,6 +17,8 @@ type PostConfig struct {
 	RedisMaxRetries         int
 	RedisPoolSize           int
 	ApiGatewayURL           string // URL of the API Gateway
+	TranslationAPIURL       string // optional translation service URL
+	TranslationAPIKey       string // optional translation service API key (e.g., DeepL)
 }
 
 func LoadPostConfig() *PostConfig {
@@ -31,6 +33,8 @@ func LoadPostConfig() *PostConfig {
 		RedisDBPort:             getEnv("REDIS_DB_PORT"),
 		RedisDBPassword:         getEnv("REDIS_DB_PASSWORD"),
 		ApiGatewayURL:           getEnv("API_GATEWAY_URL"),
+		TranslationAPIURL:       getEnv("TRANSLATION_API_URL"),
+		TranslationAPIKey:       getEnv("TRANSLATION_API_KEY"),
 		RedisMaxRetries:         3,
 		RedisPoolSize:           10,
 	}

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"seungpyo.lee/PersonalWebSite/services/img-service/internal/domain"
+	"seungpyo.lee/PersonalWebSite/services/img-service/internal/model"
 	"seungpyo.lee/PersonalWebSite/services/img-service/internal/repository"
 )
 
@@ -19,7 +19,7 @@ func NewImgService(repo *repository.ImgRepository) *ImgService {
 	return &ImgService{Repo: repo}
 }
 
-func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data string, userId int) (*domain.ImageResponse, error) {
+func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data string, userId int) (*model.ImageResponse, error) {
 	// data: "data:image/png;base64,...."
 	if idx := strings.Index(data, ","); idx != -1 {
 		data = data[idx+1:]
@@ -50,7 +50,7 @@ func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data 
 	if err != nil {
 		return nil, err
 	}
-	return &domain.ImageResponse{
+	return &model.ImageResponse{
 		URL:  imgPath,
 		Name: filename,
 		Size: int64(len(data)),
