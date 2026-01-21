@@ -370,13 +370,18 @@ func (h *blogHandler) processContentForDisplay(content string) string {
 					if base == "" {
 						base = "/data"
 					}
-					// Ensure single slash between base and imageURL
-					if strings.HasPrefix(imageURL, "/") {
-						insertMap["image"] = base + imageURL
+					// Skip if already prefixed with base
+					if strings.HasPrefix(imageURL, base) {
+						// already has base, leave as-is
 					} else {
-						insertMap["image"] = strings.TrimRight(base, "/") + "/" + imageURL
+						// Ensure single slash between base and imageURL
+						if strings.HasPrefix(imageURL, "/") {
+							insertMap["image"] = base + imageURL
+						} else {
+							insertMap["image"] = strings.TrimRight(base, "/") + "/" + imageURL
+						}
+						ops[i] = opMap
 					}
-					ops[i] = opMap
 				}
 			}
 		}
