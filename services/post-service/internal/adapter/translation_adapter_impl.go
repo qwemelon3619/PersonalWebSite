@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
@@ -22,6 +23,77 @@ type translationAdapterImpl struct {
 
 func NewTranslationAdapter(cfg *config.PostConfig) TranslationAdapter {
 	return &translationAdapterImpl{cfg: cfg}
+}
+
+// splitIntoSentences splits text into sentences, preserving line breaks
+func (t *translationAdapterImpl) splitIntoSentences(text string) []string {
+	// Handle empty text
+	if strings.TrimSpace(text) == "" {
+		return []string{text}
+	}
+
+	var sentences []string
+
+	// Split by line breaks first to preserve structure
+	lines := strings.Split(text, "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			// Preserve empty lines (line breaks)
+			sentences = append(sentences, "")
+			continue
+		}
+
+		// Split line into sentences using regex
+		// Regex to match sentence endings (., !, ?) followed by space or end of line
+		sentenceRegex := regexp.MustCompile(`([.!?]+)\s*`)
+		parts := sentenceRegex.Split(line, -1)
+		delimiters := sentenceRegex.FindAllString(line, -1)
+
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+
+			sentence := part
+			if i < len(delimiters) {
+				sentence += delimiters[i]
+			}
+
+			if sentence != "" {
+				sentences = append(sentences, sentence)
+			}
+		}
+	}
+
+	return sentences
+}
+
+// maskImgSrc masks img src attributes to prevent translation
+func (t *translationAdapterImpl) maskImgSrc(text string) (string, []string) {
+	re := regexp.MustCompile(`<img[^>]*src="([^"]*)"[^>]*>`)
+	matches := re.FindAllStringSubmatch(text, -1)
+	placeholders := make([]string, len(matches))
+	masked := text
+	for i, match := range matches {
+		src := match[1]
+		placeholders[i] = src
+		placeholder := fmt.Sprintf("IMG_SRC_PLACEHOLDER_%d", i)
+		// Replace the src value with placeholder
+		masked = strings.Replace(masked, `src="`+src+`"`, `src="`+placeholder+`"`, 1)
+	}
+	return masked, placeholders
+}
+
+// unmaskImgSrc restores img src attributes after translation
+func (t *translationAdapterImpl) unmaskImgSrc(text string, placeholders []string) string {
+	for i, src := range placeholders {
+		placeholder := fmt.Sprintf("IMG_SRC_PLACEHOLDER_%d", i)
+		text = strings.Replace(text, placeholder, src, -1)
+	}
+	return text
 }
 
 // CallBatch translates a batch of texts using the configured translation API.
@@ -61,26 +133,31 @@ func (t *translationAdapterImpl) CallBatch(texts []string, targetLang string) ([
 
 // doRequest performs the HTTP POST and returns response body bytes.
 func (t *translationAdapterImpl) doRequest(body []byte) ([]byte, error) {
+	if t.cfg.TranslationAPIKey == "" {
+		return nil, fmt.Errorf("translation API key is not configured")
+	}
+
 	req, err := http.NewRequest("POST", t.cfg.TranslationAPIURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if t.cfg.TranslationAPIKey != "" {
-		req.Header.Set("Authorization", "DeepL-Auth-Key "+t.cfg.TranslationAPIKey)
-	}
+	req.Header.Set("Authorization", "DeepL-Auth-Key "+t.cfg.TranslationAPIKey)
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to call translation API: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+
+	if resp.StatusCode != http.StatusOK {
 		bb, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("translation service responded %d: %s", resp.StatusCode, string(bb))
+		return nil, fmt.Errorf("translation API error (status %d): %s", resp.StatusCode, string(bb))
 	}
+
 	bb, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read translation response: %w", err)
 	}
 	return bb, nil
 }
@@ -108,6 +185,7 @@ func (t *translationAdapterImpl) TranslateDelta(content string) (string, error) 
 		return "", fmt.Errorf("invalid delta format: missing ops")
 	}
 	var segments []string
+	var allPlaceholders [][]string
 	for _, op := range ops {
 		opMap, ok := op.(map[string]interface{})
 		if !ok {
@@ -118,47 +196,100 @@ func (t *translationAdapterImpl) TranslateDelta(content string) (string, error) 
 			continue
 		}
 		if sStr, ok := insert.(string); ok {
-			segments = append(segments, sStr)
+			masked, placeholders := t.maskImgSrc(sStr)
+			segments = append(segments, masked)
+			allPlaceholders = append(allPlaceholders, placeholders)
 		}
 	}
 	if len(segments) == 0 {
 		return content, nil
 	}
-	// Split segments by \n to preserve line breaks
-	var allLines []string
-	var segmentIndices []int // index in segments for each line
-	for i, seg := range segments {
-		lines := strings.Split(seg, "\n")
-		allLines = append(allLines, lines...)
-		for range lines {
-			segmentIndices = append(segmentIndices, i)
+
+	// Split segments into sentences to preserve line breaks and improve translation quality
+	var allSentences []string
+	var sentenceToSegment []int // maps sentence index to segment index
+
+	for segmentIdx, seg := range segments {
+		sentences := t.splitIntoSentences(seg)
+		for _, sentence := range sentences {
+			allSentences = append(allSentences, sentence)
+			sentenceToSegment = append(sentenceToSegment, segmentIdx)
 		}
 	}
-	translatedLines, err := t.CallBatch(allLines, "EN")
+
+	// Filter out empty sentences (line breaks) for translation
+	var nonEmptySentences []string
+	var nonEmptyIndices []int
+	for i, sentence := range allSentences {
+		if strings.TrimSpace(sentence) != "" {
+			nonEmptySentences = append(nonEmptySentences, sentence)
+			nonEmptyIndices = append(nonEmptyIndices, i)
+		}
+	}
+
+	if len(nonEmptySentences) == 0 {
+		return content, nil
+	}
+
+	translatedSentences, err := t.CallBatch(nonEmptySentences, "EN")
 	if err != nil {
 		return "", err
 	}
-	if len(translatedLines) != len(allLines) {
-		return "", fmt.Errorf("translation line count mismatch: got %d, want %d", len(translatedLines), len(allLines))
+
+	if len(translatedSentences) != len(nonEmptySentences) {
+		return "", fmt.Errorf("translation sentence count mismatch: got %d, want %d", len(translatedSentences), len(nonEmptySentences))
 	}
-	// Reconstruct segments
+
+	// Reconstruct all sentences with translations, preserving empty strings (line breaks)
+	reconstructedSentences := make([]string, len(allSentences))
+	translatedIdx := 0
+	for i := range allSentences {
+		if strings.TrimSpace(allSentences[i]) == "" {
+			// Keep empty strings (line breaks) as-is
+			reconstructedSentences[i] = allSentences[i]
+		} else {
+			// Use translated version
+			reconstructedSentences[i] = translatedSentences[translatedIdx]
+			translatedIdx++
+		}
+	}
+
+	// Reconstruct segments by grouping sentences back to their original segments
 	translatedSegments := make([]string, len(segments))
-	lineIdx := 0
-	for i := range segments {
-		var lines []string
-		for segmentIndices[lineIdx] == i {
-			lines = append(lines, translatedLines[lineIdx])
-			lineIdx++
-			if lineIdx >= len(segmentIndices) {
-				break
+	sentenceIdx := 0
+
+	for segmentIdx := range segments {
+		var segmentParts []string
+		for sentenceIdx < len(reconstructedSentences) && sentenceToSegment[sentenceIdx] == segmentIdx {
+			segmentParts = append(segmentParts, reconstructedSentences[sentenceIdx])
+			sentenceIdx++
+		}
+
+		// Join segment parts back together
+		// Empty strings represent line breaks, so join with newlines where appropriate
+		var result strings.Builder
+		for i, part := range segmentParts {
+			if part == "" {
+				// Empty string means line break
+				if i < len(segmentParts)-1 {
+					result.WriteString("\n")
+				}
+			} else {
+				if i > 0 && segmentParts[i-1] != "" {
+					// Add space between sentences if not after a line break
+					result.WriteString(" ")
+				}
+				result.WriteString(part)
 			}
 		}
-		translatedSegments[i] = strings.Join(lines, "\n")
+		translatedSeg := result.String()
+		// Unmask img src
+		translatedSeg = t.unmaskImgSrc(translatedSeg, allPlaceholders[segmentIdx])
+		translatedSegments[segmentIdx] = translatedSeg
 	}
-	if len(translatedSegments) != len(segments) {
-		return "", fmt.Errorf("reconstructed segment count mismatch: got %d, want %d", len(translatedSegments), len(segments))
-	}
-	si := 0
+
+	// Update the delta with translated segments
+	segmentIdx := 0
 	for i, op := range ops {
 		opMap, ok := op.(map[string]interface{})
 		if !ok {
@@ -169,11 +300,12 @@ func (t *translationAdapterImpl) TranslateDelta(content string) (string, error) 
 			continue
 		}
 		if _, ok := insert.(string); ok {
-			opMap["insert"] = translatedSegments[si]
+			opMap["insert"] = translatedSegments[segmentIdx]
 			ops[i] = opMap
-			si++
+			segmentIdx++
 		}
 	}
+
 	delta["ops"] = ops
 	updated, err := json.Marshal(delta)
 	if err != nil {

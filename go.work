@@ -2,9 +2,9 @@ go 1.25.5
 
 use (
 	./pkg
-	./services/post-service
-	./services/auth-service
 	./services/api-gateway
-	./services/web-front
+	./services/auth-service
 	./services/img-service
+	./services/post-service
+	./services/web-front
 )
