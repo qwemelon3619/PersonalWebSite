@@ -87,7 +87,7 @@
 <script>
     const quill = new Quill('#editor', {
         modules: {
-            syntax: true,
+            syntax: { hljs },
             toolbar: '#toolbar-container',
         },
         placeholder: 'Blog Article Content',

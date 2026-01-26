@@ -367,9 +367,6 @@ func (h *blogHandler) processContentForDisplay(content string) string {
 					// leave as-is
 				} else {
 					base := h.cfg.ImageBaseURL
-					if base == "" {
-						base = "/data"
-					}
 					// Skip if already prefixed with base
 					if strings.HasPrefix(imageURL, base) {
 						// already has base, leave as-is
