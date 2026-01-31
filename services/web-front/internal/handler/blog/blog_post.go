@@ -61,23 +61,7 @@ func (h *postHandler) Save(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
-	// Support Quill Delta JSON that contains embedded images (data URLs).
-	// Try to parse incoming content as JSON delta (object with ops or ops array).
-	var parsed interface{}
-	if err := json.Unmarshal([]byte(content), &parsed); err == nil {
-		// It's valid JSON — treat as Delta
-		// Marshal back to JSON string to send to Post service
-		if b, err := json.Marshal(parsed); err == nil {
-			content = string(b)
-		} else {
-			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to encode delta"))
-			return
-		}
-	} else {
-		// Not valid JSON — error
-		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post content format"))
-		return
-	}
+	// Content is now Markdown, no JSON validation needed
 
 	// Handle thumbnail upload
 	var thumbnailData string

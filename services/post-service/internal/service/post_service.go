@@ -27,10 +27,10 @@ func NewPostService(postRepo domain.PostRepository, tagRepo domain.TagRepository
 
 // CreatePost creates a new blog post with the given request and author ID.
 func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, authorName string) (*domain.Post, error) {
-	// Process Delta JSON for image uploads BEFORE sanitization
+	// Process Markdown for image uploads BEFORE sanitization
 	var processedContent string
 	var err error
-	processedContent, err = s.imageAdapter.ProcessDeltaForImages(req.Content, authorID)
+	processedContent, err = s.imageAdapter.ProcessMarkdownForImages(req.Content, authorID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process images in content: %w", err)
 	}
@@ -78,7 +78,7 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, aut
 			s.logger.Error(fmt.Sprintf("Failed to translate title: %v", err))
 		}
 
-		if t, err := s.transAdapter.TranslateDelta(processedContent); err == nil {
+		if t, err := s.transAdapter.TranslateMarkdown(processedContent); err == nil {
 			post.EnContent = t
 			s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
 		} else {
@@ -130,9 +130,9 @@ func (s *postService) UpdatePost(id uint, req model.UpdatePostRequest, authorID 
 	var safeContent string
 	var processedContent string
 	if req.Content != nil {
-		// Process Delta JSON for image uploads BEFORE sanitization
+		// Process Markdown for image uploads BEFORE sanitization
 		var err error
-		processedContent, err = s.imageAdapter.ProcessDeltaForImages(*req.Content, authorID)
+		processedContent, err = s.imageAdapter.ProcessMarkdownForImages(*req.Content, authorID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process images in content: %w", err)
 		}
@@ -165,7 +165,7 @@ func (s *postService) UpdatePost(id uint, req model.UpdatePostRequest, authorID 
 			}
 		}
 		if req.Content != nil {
-			if t, err := s.transAdapter.TranslateDelta(processedContent); err == nil {
+			if t, err := s.transAdapter.TranslateMarkdown(processedContent); err == nil {
 				post.EnContent = t
 				s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
 			} else {

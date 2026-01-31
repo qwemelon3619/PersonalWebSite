@@ -3,12 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gomarkdown/markdown"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
@@ -190,12 +193,7 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 		}
 		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
 	}
-	// Process content for display
-	contentStr := h.processContentForDisplay(post.Content)
-	enContentStr := ""
-	if post.EnContent != "" {
-		enContentStr = h.processContentForDisplay(post.EnContent)
-	}
+	// For editing, pass raw Markdown content (not processed HTML)
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
 		"username":      username,
 		"isLoggedIn":    isLoggedIn,
@@ -204,8 +202,8 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 			"ID":          post.ID,
 			"Title":       post.Title,
 			"EnTitle":     post.EnTitle,
-			"Content":     contentStr,
-			"EnContent":   enContentStr,
+			"Content":     post.Content,   // Raw Markdown
+			"EnContent":   post.EnContent, // Raw Markdown
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
@@ -240,11 +238,11 @@ func (h *blogHandler) Article(c *gin.Context) {
 	if post.Thumbnail != "" && !strings.HasPrefix(post.Thumbnail, "http") {
 		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
 	}
-	// Pass through stored content (which may be Delta JSON or legacy HTML) to client
-	contentStr := h.processContentForDisplay(post.Content)
+	// Convert stored Markdown to HTML for display
+	contentStr := h.processContentForDisplay(post.Content) // Korean content (Markdown to HTML)
 	enContentStr := ""
 	if post.EnContent != "" {
-		enContentStr = h.processContentForDisplay(post.EnContent)
+		enContentStr = h.processContentForDisplay(post.EnContent) // English content (Markdown to HTML)
 	}
 
 	username, err := c.Cookie("user")
@@ -254,8 +252,8 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"ID":          post.ID,
 			"Title":       post.Title,
 			"EnTitle":     post.EnTitle,
-			"Content":     contentStr,
-			"EnContent":   enContentStr,
+			"Content":     template.HTML(contentStr),   // HTML content (safe to render)
+			"EnContent":   template.HTML(enContentStr), // HTML content (safe to render)
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"AuthorName":  post.AuthorName,
@@ -340,53 +338,37 @@ func (h *blogHandler) Remove(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/blog")
 }
 
-// processContentForDisplay processes Quill Delta JSON and prefixes image URLs with baseURL.
+// processContentForDisplay processes Markdown and prefixes image URLs with baseURL.
 func (h *blogHandler) processContentForDisplay(content string) string {
-	var delta map[string]interface{}
-	if err := json.Unmarshal([]byte(content), &delta); err != nil {
-		// Not JSON, return as is
-		return content
-	}
-	ops, ok := delta["ops"].([]interface{})
-	if !ok {
-		return content
-	}
-	for i, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
+	// Convert Markdown to HTML
+	htmlBytes := markdown.ToHTML([]byte(content), nil, nil)
+	htmlStr := string(htmlBytes)
+
+	// Process image URLs to prefix with base URL if relative
+	// Use regex to find <img src="..."> tags
+	re := regexp.MustCompile(`<img[^>]+src="([^"]+)"[^>]*>`)
+	htmlStr = re.ReplaceAllStringFunc(htmlStr, func(match string) string {
+		submatches := re.FindStringSubmatch(match)
+		if len(submatches) < 2 {
+			return match
 		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
+		src := submatches[1]
+
+		// Skip absolute URLs and data URLs
+		if strings.HasPrefix(src, "http") || strings.HasPrefix(src, "data:") {
+			return match
 		}
-		if insertMap, ok := insert.(map[string]interface{}); ok {
-			if imageURL, ok := insertMap["image"].(string); ok && imageURL != "" {
-				// Skip absolute URLs and data URLs
-				if strings.HasPrefix(imageURL, "http") || strings.HasPrefix(imageURL, "data:") {
-					// leave as-is
-				} else {
-					base := h.cfg.ImageBaseURL
-					// Skip if already prefixed with base
-					if strings.HasPrefix(imageURL, base) {
-						// already has base, leave as-is
-					} else {
-						// Ensure single slash between base and imageURL
-						if strings.HasPrefix(imageURL, "/") {
-							insertMap["image"] = base + imageURL
-						} else {
-							insertMap["image"] = strings.TrimRight(base, "/") + "/" + imageURL
-						}
-						ops[i] = opMap
-					}
-				}
-			}
+
+		base := h.cfg.ImageBaseURL
+		if strings.HasPrefix(src, "/") {
+			src = base + src
+		} else {
+			src = strings.TrimRight(base, "/") + "/" + src
 		}
-	}
-	// Marshal back to JSON
-	updated, err := json.Marshal(delta)
-	if err != nil {
-		return content
-	}
-	return string(updated)
+
+		// Replace the src in the match
+		return strings.Replace(match, submatches[1], src, 1)
+	})
+
+	return htmlStr
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
@@ -75,71 +76,43 @@ func (a *imageAdapterImpl) DeleteImage(path string) error {
 	return nil
 }
 
-func (a *imageAdapterImpl) ProcessDeltaForImages(content string, userID uint) (string, error) {
-	var delta map[string]interface{}
-	if err := json.Unmarshal([]byte(content), &delta); err != nil {
-		// Not JSON, return as is
-		return content, nil
-	}
-	ops, ok := delta["ops"].([]interface{})
-	if !ok {
-		return content, nil
-	}
-	for i, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
+func (a *imageAdapterImpl) ProcessMarkdownForImages(content string, userID uint) (string, error) {
+	// Use regex to find image markdown syntax with data URLs
+	// Pattern: ![alt](data:...;base64,...)
+	re := regexp.MustCompile(`!\[([^\]]*)\]\((data:[^;]+;base64,[^)]+)\)`)
+
+	return re.ReplaceAllStringFunc(content, func(match string) string {
+		// Extract the data URL
+		submatches := re.FindStringSubmatch(match)
+		if len(submatches) < 3 {
+			return match // shouldn't happen
 		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
+		imageData := submatches[2]
+		alt := submatches[1]
+
+		// Upload the image
+		uploadedURL, err := a.UploadImage(imageData, userID)
+		if err != nil {
+			// Log error but keep original data URL to avoid breaking content
+			return match
 		}
-		if insertMap, ok := insert.(map[string]interface{}); ok {
-			if imageData, ok := insertMap["image"].(string); ok && strings.HasPrefix(imageData, "data:") {
-				// Upload the data URL image
-				uploadedURL, err := a.UploadImage(imageData, userID)
-				if err != nil {
-					return "", fmt.Errorf("failed to upload image: %w", err)
-				}
-				// Replace with URL
-				insertMap["image"] = uploadedURL
-				ops[i] = opMap
-			}
-		}
-	}
-	// Marshal back to JSON
-	updated, err := json.Marshal(delta)
-	if err != nil {
-		return "", err
-	}
-	return string(updated), nil
+
+		// Replace with uploaded URL
+		return fmt.Sprintf("![%s](%s)", alt, uploadedURL)
+	}), nil
 }
 
 func (a *imageAdapterImpl) ExtractImageURLsFromContent(content string) []string {
-	var delta map[string]interface{}
-	if err := json.Unmarshal([]byte(content), &delta); err != nil {
-		return nil
-	}
-	ops, ok := delta["ops"].([]interface{})
-	if !ok {
-		return nil
-	}
+	// Use regex to find image URLs in markdown: ![alt](url)
+	re := regexp.MustCompile(`!\[([^\]]*)\]\(([^)]+)\)`)
+	matches := re.FindAllStringSubmatch(content, -1)
 	var urls []string
-	for _, op := range ops {
-		opMap, ok := op.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		insert, ok := opMap["insert"]
-		if !ok {
-			continue
-		}
-		if insertMap, ok := insert.(map[string]interface{}); ok {
-			if imageURL, ok := insertMap["image"].(string); ok && imageURL != "" {
-				// Include both HTTP URLs and relative paths
-				if strings.HasPrefix(imageURL, "http") || strings.HasPrefix(imageURL, "/") {
-					urls = append(urls, imageURL)
-				}
+	for _, match := range matches {
+		if len(match) >= 3 {
+			url := match[2]
+			// Include HTTP URLs and relative paths, but not data URLs
+			if strings.HasPrefix(url, "http") || (strings.HasPrefix(url, "/") && !strings.HasPrefix(url, "data:")) {
+				urls = append(urls, url)
 			}
 		}
 	}

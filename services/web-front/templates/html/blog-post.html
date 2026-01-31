@@ -1,7 +1,14 @@
 {{ template "header.html" . }}
 <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<!-- TOAST UI Editor -->
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.css" />
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" />
+<link rel="stylesheet"
+    href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight.min.css" />
+<script
+    src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -29,88 +36,136 @@
                     value="{{ if .post }}{{ range $i, $t := .post.Tags }}{{if $i}}, {{end}}{{ $t.Name }}{{ end }}{{ end }}">
                 <div class="form-text">Separate tags with commas.</div>
             </div>
-            <div id="toolbar-container">
-                <span class="ql-formats">
-                    <select class="ql-font"></select>
-                    <select class="ql-size"></select>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-bold"></button>
-                    <button class="ql-italic"></button>
-                    <button class="ql-underline"></button>
-                    <button class="ql-strike"></button>
-                </span>
-                <span class="ql-formats">
-                    <select class="ql-color"></select>
-                    <select class="ql-background"></select>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-header" value="1"></button>
-                    <button class="ql-header" value="2"></button>
-                    <button class="ql-blockquote"></button>
-                    <button class="ql-code-block"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-list" value="ordered"></button>
-                    <button class="ql-list" value="bullet"></button>
-                    <button class="ql-indent" value="-1"></button>
-                    <button class="ql-indent" value="+1"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-direction" value="rtl"></button>
-                    <select class="ql-align"></select>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-link"></button>
-                    <button class="ql-image"></button>
-                    <button class="ql-video"></button>
-                    <button class="ql-formula"></button>
-                </span>
-                <span class="ql-formats">
-                    <button class="ql-clean"></button>
-                </span>
-            </div>
-            <div id="editor" class="article-content" style="min-height: 600px;">
+            <style>
+                #editor {
+                    width: 100%;
+                    min-height: 900px;
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI {
+                    border: 1px solid #ddd !important;
+                    border-radius: 4px;
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror {
+                    font-size: 18px !important;
+                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror-code {
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror-lines {
+                    font-size: 18px !important;
+                }
+
+                /* 프리뷰 영역 */
+                #editor .toastui-editor-defaultUI .toastui-editor-md-container .toastui-editor-md-preview {
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-md-container .toastui-editor-md-preview * {
+                    font-size: 18px !important;
+                }
+
+                /* WYSIWYG 모드 */
+                #editor .toastui-editor-defaultUI .toastui-editor-ww-container .toastui-editor-ww-mode {
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-ww-container .toastui-editor-ww-mode * {
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-md-tab-container .toastui-editor-md-tab-content {
+                    font-size: 18px !important;
+                }
+
+                #editor .toastui-editor-defaultUI .toastui-editor-toolbar {
+                    font-size: 16px !important;
+                }
+
+                #editor * {
+                    font-size: inherit !important;
+                }
+            </style>
+            <div id="editor" class="article-content">
             </div>
         </div>
         <textarea name="article-content" style='display:none'
-            id="hiddenArea">{{ if .post }}{{ .post.Content | renderSanitizedHTML }}{{ end }}</textarea>
+            id="hiddenArea">{{ if .post }}{{ .post.Content }}{{ end }}</textarea>
         <br>
         <div class="d-flex flex-row-reverse">
             <button type="submit" class="btn btn-primary">{{ if .post }}Update{{ else }}Post{{ end }}</button>
         </div>
     </form>
 </section>
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
-<!-- Initialize Quill editor -->
+<!-- Initialize TOAST UI Editor -->
 <script>
-    const quill = new Quill('#editor', {
-        modules: {
-            syntax: { hljs },
-            toolbar: '#toolbar-container',
-        },
-        placeholder: 'Blog Article Content',
-        theme: 'snow',
-    });
-    window.addEventListener('DOMContentLoaded', function () {
-        var hidden = document.getElementById('hiddenArea').value;
-        if (hidden) {
-            try {
-                // If hidden contains a Quill Delta JSON, restore it into the editor
-                var delta = JSON.parse(hidden);
-                quill.setContents(delta);
-            } catch (e) {
-                // Fallback: assume HTML was stored previously
-                quill.root.innerHTML = hidden;
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            const { Editor } = toastui;
+            const { codeSyntaxHighlight } = Editor.plugin;
+            const editor = new Editor({
+                el: document.querySelector('#editor'),
+                viewer: true,
+                height: '900px',
+                initialEditType: 'markdown',
+                previewStyle: 'tab',
+                plugins: [codeSyntaxHighlight],
+            });
+            // 에디터 초기화 후 폰트 사이즈 강제 적용
+            setTimeout(() => {
+                const editorElement = document.querySelector('#editor');
+                if (editorElement) {
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        #editor .toastui-editor-defaultUI,
+                        #editor .toastui-editor-defaultUI *,
+                        #editor .CodeMirror,
+                        #editor .CodeMirror *,
+                        #editor .toastui-editor-md-preview,
+                        #editor .toastui-editor-md-preview *,
+                        #editor .toastui-editor-ww-mode,
+                        #editor .toastui-editor-ww-mode * {
+                            font-size: 18px !important;
+                            font-family: inherit !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }, 100);
+
+            // Load existing content
+            const hiddenArea = document.getElementById('hiddenArea');
+            if (hiddenArea && hiddenArea.value) {
+                editor.setMarkdown(hiddenArea.value);
+            }
+
+            // Handle form submission
+            document.getElementById('blogform').addEventListener('submit', function () {
+                hiddenArea.value = editor.getMarkdown();
+            });
+
+        } catch (error) {
+            // Fallback to textarea
+            const editorElement = document.getElementById('editor');
+            if (editorElement) {
+                editorElement.innerHTML = '<textarea id="fallback-editor" class="form-control" rows="20" placeholder="Markdown content"></textarea>';
+                const fallback = document.getElementById('fallback-editor');
+                const hiddenArea = document.getElementById('hiddenArea');
+                if (hiddenArea && hiddenArea.value) {
+                    fallback.value = hiddenArea.value;
+                }
+                document.getElementById('blogform').addEventListener('submit', function () {
+                    hiddenArea.value = fallback.value;
+                });
             }
         }
     });
-
-    $("#blogform").on("submit", function (e) {
-        // Submit Quill delta (JSON) so backend can store the delta instead of HTML
-        var delta = quill.getContents();
-        document.getElementById("hiddenArea").value = JSON.stringify(delta);
-    })
 </script>
 {{ template "footer.html" . }}
