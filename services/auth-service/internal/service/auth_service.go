@@ -64,7 +64,7 @@ func (s *authService) OAuthLogin(provider, code string) (*model.LoginResponse, *
 	}
 
 	// Check if user exists
-	if googleUser.ID != "lspyo11@gmail.com" {
+	if googleUser.Email != "lspyo11@gmail.com" {
 		return nil, nil, fmt.Errorf("unauthorized email")
 	}
 	fmt.Printf("DEBUG: Google user ID: %s, Name: %s, Email: %s\n", googleUser.ID, googleUser.Name, googleUser.Email)
