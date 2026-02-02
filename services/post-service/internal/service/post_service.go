@@ -26,7 +26,7 @@ func NewPostService(postRepo domain.PostRepository, tagRepo domain.TagRepository
 }
 
 // CreatePost creates a new blog post with the given request and author ID.
-func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, authorName string) (*domain.Post, error) {
+func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint) (*domain.Post, error) {
 	// Process Markdown for image uploads BEFORE sanitization
 	var processedContent string
 	var err error
@@ -51,12 +51,11 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, aut
 	}
 
 	post := &domain.Post{
-		Title:      req.Title,
-		Content:    safeContent,
-		Thumbnail:  thumbnailURL,
-		AuthorID:   authorID,
-		Published:  req.Published,
-		AuthorName: authorName,
+		Title:     req.Title,
+		Content:   safeContent,
+		Thumbnail: thumbnailURL,
+		AuthorID:  authorID,
+		Published: req.Published,
 	}
 	if err := s.postRepo.Create(post); err != nil {
 		return nil, fmt.Errorf("failed to create post: %w", err)
@@ -90,7 +89,12 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint, aut
 			s.logger.Error(fmt.Sprintf("Failed to persist translations: %v", err))
 		}
 	}
-	return post, nil
+	// Load author info
+	loadedPost, err := s.postRepo.GetByID(post.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load post with author: %w", err)
+	}
+	return loadedPost, nil
 }
 
 // GetPost retrieves a post by its ID.

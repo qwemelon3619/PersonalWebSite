@@ -2,8 +2,6 @@ package main
 
 import (
 	"html/template"
-	"net/http"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
@@ -32,7 +30,7 @@ func main() {
 	blogH := blog.NewBlogHandler(cfg)
 	postH := blog.NewPostHandler(cfg)
 	pageH := page.NewPageHandler(cfg)
-	// Adjust paths for development (debug) vs production
+	// Adjust paths for development (ddebug) vs production
 	r.LoadHTMLGlob("/app/services/web-front/templates/html/*.html")
 	r.Static("/static", "/app/services/web-front/static")
 	r.Static("/assets", "/app/services/web-front/templates/assets")
@@ -50,19 +48,9 @@ func main() {
 	r.GET("/about", pageH.About)
 
 	r.GET("/login", authH.Login)
-	r.POST("/login", authH.LoginPost)
 	r.GET("/logout", authH.Logout)
-	if gin.Mode() == gin.DebugMode {
-		r.GET("/register", authH.Register)
-		r.POST("/register", authH.RegisterPost)
-	} else {
-		r.GET("/register", func(c *gin.Context) {
-			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Not in production mode"))
-		})
-		r.POST("/register", func(c *gin.Context) {
-			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Not in production mode"))
-		})
-	}
+	r.GET("/oauth/google", authH.OAuthGoogleLogin)
+	r.GET("/oauth/google/callback", authH.OAuthGoogleRedirect)
 	r.GET("/blog", blogH.List)
 	r.GET("/blog-post", blogH.EditOrNew)
 	r.GET("/blog-edit/:articleNumber", blogH.EditOrNew)

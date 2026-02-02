@@ -11,7 +11,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"seungpyo.lee/PersonalWebSite/pkg/jwt"
+	"seungpyo.lee/PersonalWebSite/pkg/logger"
 )
+
+var log = logger.New("debug")
 
 // AuthOrRefreshMiddleware validates access token; if expired, it calls auth-service /refresh
 // to obtain a new access token, sets it as a cookie, updates the request Authorization header,
@@ -19,6 +22,7 @@ import (
 func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL string, accessTokenTTLMinutes int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// prevent multiple refresh attempts for the same request
+		log.Debug("AuthOrRefreshMiddleware invoked")
 		if c.GetHeader("X-Refreshed") == "1" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token refresh failed previously"})
 			return
@@ -33,11 +37,16 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 		claims, err := tokenManager.ValidateAccessToken(tokenString)
 		if err == nil {
 			// valid
+			log.Debug("access token valid")
+			c.Set("user_id", claims.UserID)
+			c.Set("username", claims.Username)
 			c.Request.Header.Set("X-User-Id", strconv.FormatUint(uint64(claims.UserID), 10))
 			c.Request.Header.Set("X-Username", claims.Username)
 			c.Next()
 			return
 		}
+		log.Debug("access token invalid: " + err.Error())
+
 		// If expired, try refresh
 		if !errors.Is(err, jwt.ErrTokenExpired) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid access token"})
@@ -87,7 +96,10 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refreshed token invalid"})
 			return
 		}
+
 		// inject claims
+		c.Set("user_id", claims.UserID)
+		c.Set("username", claims.Username)
 		c.Request.Header.Set("X-User-Id", strconv.FormatUint(uint64(newClaims.UserID), 10))
 		c.Request.Header.Set("X-Username", newClaims.Username)
 		c.Next()

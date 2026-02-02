@@ -6,6 +6,12 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
 )
 
+type User struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
 type Post struct {
 	ID          uint       `json:"id" gorm:"primaryKey"`
 	Title       string     `json:"title" gorm:"type:text;not null"`
@@ -14,7 +20,7 @@ type Post struct {
 	EnContent   string     `json:"en_content,omitempty" gorm:"type:text"`
 	Thumbnail   string     `json:"thumbnail,omitempty" gorm:"type:text"` // URL to thumbnail image
 	AuthorID    uint       `json:"author_id" gorm:"index"`
-	AuthorName  string     `json:"author_name,omitempty" gorm:"type:text"`
+	Author      User       `json:"author" gorm:"foreignKey:AuthorID"`
 	Published   bool       `json:"published" gorm:"default:false"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -50,7 +56,7 @@ type TagRepository interface {
 }
 
 type PostService interface {
-	CreatePost(req model.CreatePostRequest, authorID uint, authorName string) (*Post, error)
+	CreatePost(req model.CreatePostRequest, authorID uint) (*Post, error)
 	GetPost(id uint) (*Post, error)
 	GetPostsByFilter(filter model.PostFilter) ([]*Post, error)
 	UpdatePost(id uint, req model.UpdatePostRequest, authorID uint) (*Post, error)

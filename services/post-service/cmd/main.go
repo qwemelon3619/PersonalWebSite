@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("failed to connect db: %v", err)
 	}
 	// auto migration
-	if err := db.AutoMigrate(&domain.Post{}, &domain.Tag{}); err != nil {
+	if err := db.AutoMigrate(&domain.Post{}, &domain.Tag{}, &domain.User{}); err != nil {
 		log.Fatalf("failed to migrate db: %v", err)
 	}
 

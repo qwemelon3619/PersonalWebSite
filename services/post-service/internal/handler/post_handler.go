@@ -5,7 +5,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"seungpyo.lee/PersonalWebSite/pkg/util"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/model"
 )
@@ -28,13 +27,18 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		return
 	}
 	// passed jwt middleware, get user id from jwt claims
-	userID, ok := util.GetUserID(c)
-	userName, ok := util.GetUsername(c)
-	if !ok {
+	userIDStr := c.GetHeader("X-User-Id")
+	if userIDStr == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	post, err := h.Service.CreatePost(req, userID, userName)
+	parsed, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+		return
+	}
+	userID := uint(parsed)
+	post, err := h.Service.CreatePost(req, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -118,11 +122,17 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	userID, ok := util.GetUserID(c)
-	if !ok {
+	userIDStr := c.GetHeader("X-User-Id")
+	if userIDStr == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+	parsed, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+		return
+	}
+	userID := uint(parsed)
 	post, err := h.Service.UpdatePost(uint(id), req, userID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -138,11 +148,17 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
-	userID, ok := util.GetUserID(c)
-	if !ok {
+	userIDStr := c.GetHeader("X-User-Id")
+	if userIDStr == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+	parsed, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+		return
+	}
+	userID := uint(parsed)
 	if err := h.Service.DeletePost(uint(id), userID); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return

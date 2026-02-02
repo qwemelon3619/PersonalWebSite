@@ -27,14 +27,22 @@ func NewPageHandler(cfg *config.PostConfig) PageHandler {
 }
 
 func (h *pageHandler) Index(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
-	apiGatewayURL := h.cfg.ApiGatewayURL
-	if apiGatewayURL == "" {
-		apiGatewayURL = "http://localhost:8080"
+	// Handle OAuth callback
+	token := c.Query("token")
+	if token != "" {
+		c.SetCookie("access_token", token, 3600, "/", "", true, true)
+		// Redirect to clean URL
+		c.Redirect(http.StatusFound, "/")
+		return
 	}
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
+
+	apiGatewayURL := h.cfg.ApiGatewayURL
 	posts := []blogHandler.Post{}
-	resp, err := http.Get(apiGatewayURL + "/api/v1/posts")
+	resp, err := http.Get(apiGatewayURL + "/v1/posts")
 	if err == nil && resp.StatusCode == http.StatusOK {
 		defer resp.Body.Close()
 		var allPosts []blogHandler.Post
@@ -53,17 +61,17 @@ func (h *pageHandler) Index(c *gin.Context) {
 	}
 	c.HTML(http.StatusOK, "index.html", gin.H{
 		"isLoggedIn": isLoggedIn,
-		"username":   username,
 		"posts":      posts,
 	})
 }
 
 func (h *pageHandler) About(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	c.HTML(http.StatusOK, "about.html", gin.H{
 		"isLoggedIn": isLoggedIn,
-		"username":   username,
 	})
 }
 

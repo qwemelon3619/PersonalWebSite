@@ -18,6 +18,9 @@ type AuthConfig struct {
 	RedisDBPassword         string
 	RedisMaxRetries         int
 	RedisPoolSize           int
+	GoogleClientID          string
+	GoogleClientSecret      string
+	MYDOMAIN                string
 }
 
 func LoadAuthConfig() *AuthConfig {
@@ -34,6 +37,9 @@ func LoadAuthConfig() *AuthConfig {
 		RedisMaxRetries:         3,
 		RedisPoolSize:           10,
 		JWTSecretKey:            getEnv("JWT_SECRET_KEY"),
+		GoogleClientID:          getEnv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:      getEnv("GOOGLE_CLIENT_SECRET"),
+		MYDOMAIN:                getEnv("MYDOMAIN"),
 	}
 }
 

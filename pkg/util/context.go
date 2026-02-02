@@ -6,25 +6,26 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetUserID extracts user_id from X-User-Id header
-func GetUserID(c *gin.Context) (uint, bool) {
-	userIDStr := c.GetHeader("X-User-Id")
-	if userIDStr == "" {
-		return 0, false
+// GetUserID extracts user_id from gin context
+func GetUserID(c *gin.Context) (uint, error) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return 0, fmt.Errorf("user_id not found in context")
 	}
-	var uid uint
-	_, err := fmt.Sscanf(userIDStr, "%d", &uid)
-	if err != nil {
-		return 0, false
+	if uid, ok := userID.(uint); ok {
+		return uid, nil
 	}
-	return uid, true
+	return 0, fmt.Errorf("user_id is not uint")
 }
 
-// GetUsername extracts username from X-Username header
-func GetUsername(c *gin.Context) (string, bool) {
-	username := c.GetHeader("X-Username")
-	if username == "" {
-		return "", false
+// GetUsername extracts username from gin context
+func GetUsername(c *gin.Context) (string, error) {
+	username, exists := c.Get("username")
+	if !exists {
+		return "", fmt.Errorf("username not found in context")
 	}
-	return username, true
+	if uname, ok := username.(string); ok {
+		return uname, nil
+	}
+	return "", fmt.Errorf("username is not string")
 }

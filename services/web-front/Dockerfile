@@ -6,7 +6,7 @@ WORKDIR /app
 COPY . .
 WORKDIR /app/services/web-front
 RUN go install github.com/air-verse/air@latest
-EXPOSE 3000
+EXPOSE 3001
 ENV GIN_MODE=debug
 CMD ["air", "-c", ".air.toml"]
 

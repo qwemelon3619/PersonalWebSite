@@ -37,7 +37,7 @@ func (r *postRepository) Create(post *domain.Post) error {
 // GetByID retrieves a post by its ID from the database.
 func (r *postRepository) GetByID(id uint) (*domain.Post, error) {
 	var post domain.Post
-	if err := r.db.Preload("Tags").First(&post, id).Error; err != nil {
+	if err := r.db.Preload("Tags").Preload("Author").First(&post, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("post not found")
 		}
@@ -49,7 +49,7 @@ func (r *postRepository) GetByID(id uint) (*domain.Post, error) {
 // GetAll returns all posts matching the given filter.
 func (r *postRepository) GetAll(filter model.PostFilter) ([]*domain.Post, error) {
 	var posts []*domain.Post
-	query := r.db.Model(&domain.Post{}).Preload("Tags")
+	query := r.db.Model(&domain.Post{}).Preload("Tags").Preload("Author")
 	if filter.AuthorID != nil {
 		query = query.Where("author_id = ?", *filter.AuthorID)
 	}

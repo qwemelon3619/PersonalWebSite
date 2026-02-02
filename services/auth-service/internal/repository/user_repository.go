@@ -49,6 +49,22 @@ func (r *userRepository) GetByEmail(email string) (*domain.User, error) {
 	return &user, nil
 }
 
+// GetByProviderID retrieves a user by provider and provider ID.
+func (r *userRepository) GetByProviderID(provider, providerID string) (*domain.User, error) {
+	var user domain.User
+	fmt.Printf("DEBUG: Querying provider=%s, provider_id=%s\n", provider, providerID)
+	if err := r.db.Where("provider = ? AND provider_id = ?", provider, providerID).First(&user).Error; err != nil {
+		fmt.Printf("DEBUG: Query error: %v\n", err)
+		if err == gorm.ErrRecordNotFound {
+			fmt.Println("DEBUG: User not found")
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	fmt.Printf("DEBUG: Found user ID=%d\n", user.ID)
+	return &user, nil
+}
+
 // GetByID retrieves a user by ID.
 func (r *userRepository) GetByID(id uint) (*domain.User, error) {
 	var user domain.User
@@ -58,7 +74,6 @@ func (r *userRepository) GetByID(id uint) (*domain.User, error) {
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
-	user.Password = "" // Hide password
 	return &user, nil
 }
 

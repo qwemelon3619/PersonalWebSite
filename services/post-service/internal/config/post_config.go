@@ -16,7 +16,7 @@ type PostConfig struct {
 	RedisDBPassword         string
 	RedisMaxRetries         int
 	RedisPoolSize           int
-	ApiGatewayURL           string // URL of the API Gateway
+	ImageServiceURL         string // URL of the Image Service
 	TranslationAPIURL       string // optional translation service URL
 	TranslationAPIKey       string // optional translation service API key (e.g., DeepL)
 }
@@ -32,7 +32,7 @@ func LoadPostConfig() *PostConfig {
 		RedisDBURL:              getEnv("REDIS_DB_URL"),
 		RedisDBPort:             getEnv("REDIS_DB_PORT"),
 		RedisDBPassword:         getEnv("REDIS_DB_PASSWORD"),
-		ApiGatewayURL:           getEnv("API_GATEWAY_URL"),
+		ImageServiceURL:         getEnv("IMAGE_SERVICE_URL"),
 		TranslationAPIURL:       getEnv("TRANSLATION_API_URL"),
 		TranslationAPIKey:       getEnv("TRANSLATION_API_KEY"),
 		RedisMaxRetries:         3,
@@ -47,12 +47,4 @@ func getEnv(key string) string {
 	} else {
 		panic("critical config missing: " + key)
 	}
-}
-
-// getEnvOrDefault retrieves the value or returns default if not set.
-func getEnvOrDefault(key, defaultValue string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return defaultValue
 }

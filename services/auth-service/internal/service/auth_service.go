@@ -1,14 +1,17 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"seungpyo.lee/PersonalWebSite/pkg/jwt"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/model"
-	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/util"
 )
 
 // authService implements domain.AuthService using a UserRepository.
@@ -23,48 +26,80 @@ func NewAuthService(repo domain.UserRepository, tokenManager jwt.TokenManager) d
 	return &authService{repo: repo, config: *config.LoadAuthConfig(), TokenManager: tokenManager}
 }
 
-// Login authenticates a user by username and password.
-func (s *authService) Login(email string, password string) (*model.LoginResponse, error) {
-	user, err := s.repo.GetByEmail(email)
+// OAuthLogin handles OAuth login for providers like Google.
+func (s *authService) OAuthLogin(provider, code string) (*model.LoginResponse, *domain.GoogleUserInfo, error) {
+	var oauthConfig *oauth2.Config
+	switch provider {
+	case "google":
+		oauthConfig = &oauth2.Config{
+			ClientID:     s.config.GoogleClientID,
+			ClientSecret: s.config.GoogleClientSecret,
+			RedirectURL:  s.config.MYDOMAIN + "/api/v1/auth/oauth/google/callback",
+			Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+			Endpoint:     google.Endpoint,
+		}
+	default:
+		return nil, nil, fmt.Errorf("unsupported provider: %s", provider)
+	}
+
+	token, err := oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		return nil, fmt.Errorf("invalid username or password")
+		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
-	if err := util.CheckPassword(user.Password, password); err != nil {
-		return nil, fmt.Errorf("invalid username or password")
+
+	client := oauthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get user info: %w", err)
 	}
-	// Generate access and refresh tokens
+	defer resp.Body.Close()
+
+	var googleUser struct {
+		ID    string `json:"id"`
+		Email string `json:"email"`
+		Name  string `json:"name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
+		return nil, nil, fmt.Errorf("failed to decode user info: %w", err)
+	}
+
+	// Check if user exists
+	fmt.Printf("DEBUG: Google user ID: %s, Name: %s, Email: %s\n", googleUser.ID, googleUser.Name, googleUser.Email)
+	user, err := s.repo.GetByProviderID("google", googleUser.ID)
+	if err != nil {
+		fmt.Printf("DEBUG: GetByProviderID error: %v\n", err)
+		if err.Error() == "user not found" {
+			// User does not exist, create new user
+			fmt.Println("DEBUG: Creating new user")
+			newUser := &domain.User{
+				Username:   googleUser.Name,
+				Email:      googleUser.Email,
+				Provider:   "google",
+				ProviderID: googleUser.ID,
+			}
+			if err := s.repo.Create(newUser); err != nil {
+				return nil, nil, fmt.Errorf("failed to create user: %w", err)
+			}
+			user = newUser
+		} else {
+			return nil, nil, fmt.Errorf("failed to get user: %w", err)
+		}
+	} else {
+		fmt.Printf("DEBUG: Found existing user: ID=%d, Username=%s\n", user.ID, user.Username)
+	}
+
+	//generate tokens
 	accessToken, refreshToken, err := s.TokenManager.GenerateToken(user.ID, user.Username, time.Duration(s.config.AccessTokenTTL)*time.Minute, time.Duration(s.config.RefreshTokenTTL)*time.Minute)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+		return nil, nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
-	resp := &model.LoginResponse{
+	respModel := &model.LoginResponse{
 		Token:        accessToken,
 		ExpiresAt:    time.Now().Add(time.Duration(s.config.AccessTokenTTL) * time.Minute).Unix(),
 		RefreshToken: refreshToken,
 		User:         *user,
 	}
-	return resp, nil
-}
-
-// Register creates a new user account.
-func (s *authService) Register(req model.RegisterRequest) (*domain.User, error) {
-	if user, err := s.GetUserByEmail(req.Email); err == nil && user != nil {
-		return nil, fmt.Errorf("email already in use")
-	}
-
-	hashedPassword, err := util.HashPassword(req.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-	user := &domain.User{
-		Email:    req.Email,
-		Username: req.Username,
-		Password: hashedPassword,
-	}
-	if err := s.repo.Create(user); err != nil {
-		return nil, fmt.Errorf("failed to register user: %w", err)
-	}
-	return user, nil
+	return respModel, nil, nil
 }
 
 // GetUserByEmail retrieves a user by their Email.

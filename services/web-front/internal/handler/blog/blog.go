@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,22 +16,26 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
-type Post struct {
-	ID          uint       `json:"id" db:"id"`
-	Title       string     `json:"title" db:"title"`
-	EnTitle     string     `json:"en_title" db:"en_title"`
-	Content     string     `json:"content" db:"content"`
-	EnContent   string     `json:"en_content" db:"en_content"`
-	Thumbnail   string     `json:"thumbnail,omitempty" db:"thumbnail"`
-	AuthorID    uint       `json:"author_id" db:"author_id"`
-	AuthorName  string     `json:"author_name,omitempty" db:"author_name"`
-	Published   bool       `json:"published" db:"published"`
-	PublishedAt *time.Time `json:"published_at,omitempty" db:"published_at"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
-	Tags        []Tag      `json:"tags,omitempty"`
+type User struct {
+	ID       uint   `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
-
+type Post struct {
+	ID          uint       `json:"id" gorm:"primaryKey"`
+	Title       string     `json:"title" gorm:"type:text;not null"`
+	Content     string     `json:"content" gorm:"type:text;not null"`
+	EnTitle     string     `json:"en_title,omitempty" gorm:"type:text"`
+	EnContent   string     `json:"en_content,omitempty" gorm:"type:text"`
+	Thumbnail   string     `json:"thumbnail,omitempty" gorm:"type:text"` // URL to thumbnail image
+	AuthorID    uint       `json:"author_id" gorm:"index"`
+	Author      User       `json:"author" gorm:"foreignKey:AuthorID"`
+	Published   bool       `json:"published" gorm:"default:false"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	Tags        []*Tag     `json:"tags,omitempty" gorm:"many2many:post_tags;constraint:OnDelete:CASCADE;"`
+}
 type Tag struct {
 	ID   uint   `json:"id"`
 	Name string `json:"name"`
@@ -55,13 +60,11 @@ func NewBlogHandler(cfg *config.PostConfig) BlogHandler {
 
 func (h *blogHandler) List(c *gin.Context) {
 	apiGatewayURL := h.cfg.ApiGatewayURL
-	if apiGatewayURL == "" {
-		apiGatewayURL = "http://localhost:8080"
-	}
+
 	// Forward optional search query to API gateway
 	searchQ := c.Query("search")
 	tagQ := c.Query("tag")
-	apiURL := apiGatewayURL + "/api/v1/posts"
+	apiURL := apiGatewayURL + "/v1/posts"
 	// Build query params for search and tag
 	q := url.Values{}
 	if searchQ != "" {
@@ -91,7 +94,7 @@ func (h *blogHandler) List(c *gin.Context) {
 		}
 	}
 	// Fetch available tags for sidebar
-	tagsURL := apiGatewayURL + "/api/v1/tags"
+	tagsURL := apiGatewayURL + "/v1/tags"
 	var availableTags []Tag
 	if tr, err := http.Get(tagsURL); err == nil && tr.StatusCode == http.StatusOK {
 		defer tr.Body.Close()
@@ -133,12 +136,21 @@ func (h *blogHandler) List(c *gin.Context) {
 	if nextPage > totalPages {
 		nextPage = totalPages
 	}
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	userIdStr, err := c.Cookie("userId")
+	userId := uint(0)
+	if err == nil && userIdStr != "" {
+		if parsed, parseErr := strconv.ParseUint(userIdStr, 10, 64); parseErr == nil {
+			userId = uint(parsed)
+		}
+	}
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	c.HTML(http.StatusOK, "blog-list.html", gin.H{
 		"posts":         pagedPosts,
 		"tag":           tagQ,
-		"username":      username,
+		"userId":        userId,
 		"isLoggedIn":    isLoggedIn,
 		"search":        searchQ,
 		"availableTags": availableTags,
@@ -151,10 +163,11 @@ func (h *blogHandler) List(c *gin.Context) {
 }
 
 func (h *blogHandler) NewPostPage(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
-		"username":   username,
 		"isLoggedIn": isLoggedIn,
 	})
 }
@@ -162,12 +175,21 @@ func (h *blogHandler) NewPostPage(c *gin.Context) {
 // EditOrNew renders the blog-post page for creating a new post or editing an existing one.
 // If :articleNumber parameter is present, it will load the post for editing.
 func (h *blogHandler) EditOrNew(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	userIdStr, err := c.Cookie("userId")
+	userId := uint(0)
+	if err == nil && userIdStr != "" {
+		if parsed, parseErr := strconv.ParseUint(userIdStr, 10, 64); parseErr == nil {
+			userId = uint(parsed)
+		}
+	}
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	articleNumber := c.Param("articleNumber")
 	if articleNumber == "" {
 		c.HTML(http.StatusOK, "blog-post.html", gin.H{
-			"username":   username,
+			"userId":     userId,
 			"isLoggedIn": isLoggedIn,
 		})
 		return
@@ -175,7 +197,7 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 
 	apiGatewayURL := h.cfg.ApiGatewayURL
 
-	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
+	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch post for editing"))
 		return
@@ -195,7 +217,7 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 	}
 	// For editing, pass raw Markdown content (not processed HTML)
 	c.HTML(http.StatusOK, "blog-post.html", gin.H{
-		"username":      username,
+		"userId":        userId,
 		"isLoggedIn":    isLoggedIn,
 		"articleNumber": articleNumber,
 		"post": gin.H{
@@ -206,7 +228,7 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 			"EnContent":   post.EnContent, // Raw Markdown
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
-			"AuthorName":  post.AuthorName,
+			"Author":      post.Author,
 			"Published":   post.Published,
 			"PublishedAt": post.PublishedAt,
 			"CreatedAt":   post.CreatedAt,
@@ -218,12 +240,10 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 
 func (h *blogHandler) Article(c *gin.Context) {
 	apiGatewayURL := h.cfg.ApiGatewayURL
-	if apiGatewayURL == "" {
-		apiGatewayURL = "http://localhost:8080"
-	}
+
 	articleNumber := c.Param("articleNumber")
 
-	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
+	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
@@ -245,8 +265,17 @@ func (h *blogHandler) Article(c *gin.Context) {
 		enContentStr = h.processContentForDisplay(post.EnContent) // English content (Markdown to HTML)
 	}
 
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	userIdStr, err := c.Cookie("userId")
+	userId := uint(0)
+	if err == nil && userIdStr != "" {
+		if parsed, parseErr := strconv.ParseUint(userIdStr, 10, 64); parseErr == nil {
+			userId = uint(parsed)
+		}
+	}
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	c.HTML(http.StatusOK, "blog-article.html", gin.H{
 		"post": gin.H{
 			"ID":          post.ID,
@@ -256,25 +285,34 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"EnContent":   template.HTML(enContentStr), // HTML content (safe to render)
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
-			"AuthorName":  post.AuthorName,
+			"Author":      post.Author,
 			"Published":   post.Published,
 			"PublishedAt": post.PublishedAt,
 			"CreatedAt":   post.CreatedAt,
 			"UpdatedAt":   post.UpdatedAt,
 			"Tags":        post.Tags,
 		},
-		"username":   username,
+		"userId":     userId,
 		"isLoggedIn": isLoggedIn,
 	})
 }
 
 func (h *blogHandler) RemovePage(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	userIdStr, err := c.Cookie("userId")
+	userId := uint(0)
+	if err == nil && userIdStr != "" {
+		if parsed, parseErr := strconv.ParseUint(userIdStr, 10, 64); parseErr == nil {
+			userId = uint(parsed)
+		}
+	}
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
 	articleNumber := c.Param("articleNumber")
 	apiGatewayURL := h.cfg.ApiGatewayURL
 
-	resp, err := http.Get(apiGatewayURL + "/api/v1/posts/" + articleNumber)
+	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
@@ -287,30 +325,27 @@ func (h *blogHandler) RemovePage(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "blog-remove.html", gin.H{
-		"username":      username,
+		"userId":        userId,
 		"isLoggedIn":    isLoggedIn,
 		"articleNumber": articleNumber,
 		"title":         post.Title,
 	})
 }
 func (h *blogHandler) Remove(c *gin.Context) {
-	username, err := c.Cookie("user")
-	isLoggedIn := err == nil && username != ""
+	userId, err := c.Cookie("userId")
+	isLoggedIn := err == nil && userId != ""
 	if !isLoggedIn {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
 	apiGatewayURL := h.cfg.ApiGatewayURL
-	if apiGatewayURL == "" {
-		apiGatewayURL = "http://localhost:8080"
-	}
 	postID := c.Param("articleNumber")
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
-	req, err := http.NewRequest("DELETE", apiGatewayURL+"/api/v1/posts/"+postID, nil)
+	req, err := http.NewRequest("DELETE", apiGatewayURL+"/v1/posts/"+postID, nil)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
 		return

@@ -21,7 +21,8 @@ func NewImageAdapter(config *config.PostConfig) ImageAdapter {
 }
 
 func (a *imageAdapterImpl) UploadImage(data string, userID uint) (string, error) {
-	url := fmt.Sprintf("%s/api/v1/images", a.config.ApiGatewayURL)
+	// url := fmt.Sprintf("%s/api/v1/images", a.config.ApiGatewayURL)
+	url := fmt.Sprintf("%s/blog-image", a.config.ImageServiceURL)
 	reqBody := model.UploadImageRequest{
 		Filename: "image.jpg", // dummy filename
 		UserID:   fmt.Sprintf("%d", userID),
@@ -52,7 +53,8 @@ func (a *imageAdapterImpl) UploadImage(data string, userID uint) (string, error)
 }
 
 func (a *imageAdapterImpl) DeleteImage(path string) error {
-	url := fmt.Sprintf("%s/api/v1/images", a.config.ApiGatewayURL)
+	// url := fmt.Sprintf("%s/api/v1/images", a.config.ApiGatewayURL)
+	url := fmt.Sprintf("%s/blog-image", a.config.ImageServiceURL)
 	reqBody := model.DeleteImageRequest{
 		Path: path,
 	}

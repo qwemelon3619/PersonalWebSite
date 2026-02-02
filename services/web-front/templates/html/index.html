@@ -71,7 +71,7 @@
                     {{ end }}
                     <div class="p-4 pb-2 flex-grow-1">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="text-muted small">By {{ $value.AuthorName }}</div>
+                            <div class="text-muted small">By {{ $value.Author.Username }}</div>
                             <div class="text-muted small">{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</div>
                         </div>
                         <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">

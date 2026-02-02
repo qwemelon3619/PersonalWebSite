@@ -29,9 +29,7 @@ func NewPostHandler(cfg *config.PostConfig) BlogPostHandler {
 
 func (h *postHandler) Save(c *gin.Context) {
 	apiGatewayURL := h.cfg.ApiGatewayURL
-	if apiGatewayURL == "" {
-		apiGatewayURL = "http://localhost:8080"
-	}
+
 	title := c.PostForm("article-title")
 	if title == "" {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Title is required"))
@@ -50,18 +48,6 @@ func (h *postHandler) Save(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
 		return
 	}
-	// Prefer X-User-Id header (set by gateway/middleware); fallback to cookie set at login
-	userID := c.GetHeader("X-User-Id")
-	if userID == "" {
-		if uidCookie, err := c.Cookie("userID"); err == nil && uidCookie != "" {
-			userID = uidCookie
-		}
-	}
-	if userID == "" {
-		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
-		return
-	}
-	// Content is now Markdown, no JSON validation needed
 
 	// Handle thumbnail upload
 	var thumbnailData string
@@ -115,10 +101,10 @@ func (h *postHandler) Save(c *gin.Context) {
 	var method, reqURL string
 	if articleNumber == "" {
 		method = "POST"
-		reqURL = apiGatewayURL + "/api/v1/posts"
+		reqURL = apiGatewayURL + "/v1/posts"
 	} else {
 		method = "PUT"
-		reqURL = apiGatewayURL + "/api/v1/posts/" + articleNumber
+		reqURL = apiGatewayURL + "/v1/posts/" + articleNumber
 	}
 
 	req, err := http.NewRequest(method, reqURL, bytes.NewReader(reqBody))

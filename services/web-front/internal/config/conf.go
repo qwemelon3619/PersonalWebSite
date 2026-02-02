@@ -12,6 +12,7 @@ type PostConfig struct {
 	config.GlobalConfig
 	ApiGatewayURL string
 	ImageBaseURL  string
+	MYDOMAIN      string
 }
 
 func LoadWebConfig() *PostConfig {
@@ -23,6 +24,7 @@ func LoadWebConfig() *PostConfig {
 		GlobalConfig:  *config.LoadGlobalConfig(),
 		ApiGatewayURL: getEnv("API_GATEWAY_URL"),
 		ImageBaseURL:  getEnv("IMAGE_BASE_URL"),
+		MYDOMAIN:      getEnv("MYDOMAIN"),
 	}
 }
 
@@ -33,11 +35,4 @@ func getEnv(key string) string {
 	} else {
 		panic("critical config missing: " + key)
 	}
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	}
-	return defaultValue
 }

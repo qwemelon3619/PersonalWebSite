@@ -19,23 +19,25 @@ func main() {
 	TokenManager := jwt.NewTokenManagerWithoutRedis(conf.JWTSecretKey)
 	r := gin.Default()
 	// Auth Service proxy
-	r.POST("/api/v1/auth/login", proxyTo(conf.AuthServiceURL+"/login"))
-	r.POST("/api/v1/auth/register", proxyTo(conf.AuthServiceURL+"/register"))
-	r.POST("/api/v1/auth/refresh", proxyTo(conf.AuthServiceURL+"/refresh"))
+	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL)
+	r.POST("/v1/auth/refresh", proxyTo(conf.AuthServiceURL+"/refresh"))
+	r.GET("/v1/auth/oauth/google/login", proxyTo(conf.AuthServiceURL+"/oauth/google/login"))
+	r.GET("/v1/auth/oauth/google/callback", proxyTo(conf.AuthServiceURL+"/oauth/google/callback"))
+	r.GET("/v1/auth/users/:id", authMw, proxyTo(conf.AuthServiceURL+"/users/:id"))
+	r.PUT("/v1/auth/users/:id", authMw, proxyTo(conf.AuthServiceURL+"/users/:id"))
 
 	// Post Service proxy
-	r.GET("/api/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
-	r.GET("/api/v1/posts/:id", proxyTo(conf.PostServiceURL+"/posts/:id"))
-	r.GET("/api/v1/tags", proxyTo(conf.PostServiceURL+"/tags"))
+	r.GET("/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
+	r.GET("/v1/posts/:id", proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.GET("/v1/tags", proxyTo(conf.PostServiceURL+"/tags"))
 	// Use API-gateway specific middleware that will attempt refresh on expired tokens
-	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL)
-	r.POST("/api/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))
-	r.PUT("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
-	r.DELETE("/api/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.POST("/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))
+	r.PUT("/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.DELETE("/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))
 
-	// Img Service proxy (internal, no auth required for delete)
-	r.POST("/api/v1/images", proxyTo(conf.ImgServiceURL+"/blog-image"))
-	r.DELETE("/api/v1/images", proxyTo(conf.ImgServiceURL+"/blog-image"))
+	// Img Service proxy
+	// r.POST("/v1/images", authMw, proxyTo(conf.ImgServiceURL+"/blog-image"))
+	// r.DELETE("/v1/images", authMw, proxyTo(conf.ImgServiceURL+"/blog-image"))
 
 	log.Printf("API Gateway running on :%s", conf.ServerPort)
 	if err := r.Run(":" + conf.ServerPort); err != nil {
@@ -76,7 +78,9 @@ func proxyTo(target string) gin.HandlerFunc {
 		}
 		req.Header = c.Request.Header.Clone()
 
-		client := &http.Client{}
+		client := &http.Client{CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}}
 		resp, err := client.Do(req)
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"error": "service unavailable"})

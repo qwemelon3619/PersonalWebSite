@@ -51,6 +51,9 @@ services:
       - REDIS_DB_PASSWORD=
       - JWT_SECRET_KEY=your-jwt-secret
       - SERVER_PORT=8081
+      - GOOGLE_CLIENT_ID=google-client-id
+      - GOOGLE_CLIENT_SECRET=google-client-secret
+      - MYDOMAIN=http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,10 +74,10 @@ services:
       - REDIS_DB_URL=redis
       - REDIS_DB_PORT=6379
       - REDIS_DB_PASSWORD=
-      - API_GATEWAY_URL=http://api-gateway:8080
+      - IMAGE_SERVICE_URL=http://img-service:8083
       - SERVER_PORT=8082
       - TRANSLATION_API_URL=https://api-free.deepl.com/v2/translate
-      - TRANSLATION_API_KEY=your-api-key
+      - TRANSLATION_API_KEY=your-translation-api-key
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,6 +135,7 @@ services:
       - API_GATEWAY_URL=http://api-gateway:8080
       - IMAGE_BASE_URL=/data/
       - SERVER_PORT=3001
+      - MYDOMAIN=http://localhost:3000
     ports:
       - "3001:3001"
     volumes:

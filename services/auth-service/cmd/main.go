@@ -45,7 +45,7 @@ func main() {
 
 	tokenManager := jwt.NewTokenManager(conf.JWTSecretKey, redisClient)
 	svc := service.NewAuthService(repo, tokenManager)
-	h := handler.NewAuthHandler(svc, conf)
+	h := handler.NewAuthHandler(svc, conf, tokenManager)
 
 	r := gin.Default()
 	logger := logger.New("main")
@@ -55,10 +55,10 @@ func main() {
 			"status": "ok",
 		})
 	})
-	r.POST("/register", h.Register)
-	r.POST("/login", h.Login)
-	r.POST("/refresh", h.Refresh)
+	r.GET("/oauth/google/login", h.OAuthGoogleLogin)
+	r.GET("/oauth/google/callback", h.OAuthGoogleCallback)
 	r.GET("/users/:id", h.GetUser)
+	r.POST("/refresh", h.Refresh)
 
 	if err := r.Run(":" + conf.ServerPort); err != nil {
 		log.Fatalf("failed to start server: %v", err)
