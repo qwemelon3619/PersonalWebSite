@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gomarkdown/markdown"
+	"github.com/microcosm-cc/bluemonday"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
@@ -259,10 +259,11 @@ func (h *blogHandler) Article(c *gin.Context) {
 		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
 	}
 	// Convert stored Markdown to HTML for display
-	contentStr := h.processContentForDisplay(post.Content) // Korean content (Markdown to HTML)
+	// Keep raw markdown; rendering will be done client-side using Toast UI Viewer
+	contentStr := post.Content // Korean content (raw Markdown)
 	enContentStr := ""
 	if post.EnContent != "" {
-		enContentStr = h.processContentForDisplay(post.EnContent) // English content (Markdown to HTML)
+		enContentStr = post.EnContent // English content (raw Markdown)
 	}
 
 	userIdStr, err := c.Cookie("userId")
@@ -281,8 +282,8 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"ID":          post.ID,
 			"Title":       post.Title,
 			"EnTitle":     post.EnTitle,
-			"Content":     template.HTML(contentStr),   // HTML content (safe to render)
-			"EnContent":   template.HTML(enContentStr), // HTML content (safe to render)
+			"Content":     contentStr,   // raw Markdown
+			"EnContent":   enContentStr, // raw Markdown
 			"Thumbnail":   post.Thumbnail,
 			"AuthorID":    post.AuthorID,
 			"Author":      post.Author,
@@ -405,5 +406,8 @@ func (h *blogHandler) processContentForDisplay(content string) string {
 		return strings.Replace(match, submatches[1], src, 1)
 	})
 
-	return htmlStr
+	// Sanitize generated HTML to prevent XSS and avoid double-escaped entities
+	p := bluemonday.UGCPolicy()
+	safe := p.Sanitize(htmlStr)
+	return safe
 }

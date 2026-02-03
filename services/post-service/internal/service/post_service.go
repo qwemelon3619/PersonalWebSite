@@ -35,9 +35,9 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint) (*d
 		return nil, fmt.Errorf("failed to process images in content: %w", err)
 	}
 
-	// Sanitize content
-	p := bluemonday.UGCPolicy()
-	safeContent := p.Sanitize(processedContent)
+	// Keep raw Markdown in storage. We'll sanitize HTML at render time
+	// to avoid escaping Markdown characters prematurely.
+	safeContent := processedContent
 
 	var thumbnailURL string
 	if req.ThumbnailData != "" {

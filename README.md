@@ -26,7 +26,7 @@ This project follows a microservices architecture with clean separation of conce
 ### Core Functionality
 
 - **User Authentication**: JWT-based login/registration with secure token management
-- **Blog Management**: Full CRUD operations for blog posts with rich text editing (Quill.js)
+- **Blog Management**: Full CRUD operations for blog posts with Markdown editing using Toast UI Editor (preview, KaTeX support, syntax highlighting)
 - **Image Handling**: Seamless image uploads integrated into blog content
 - **Tag System**: Post categorization and filtering by tags
 
@@ -50,6 +50,7 @@ This project follows a microservices architecture with clean separation of conce
 - **Database**: PostgreSQL for persistent data, Redis for caching and token management
 - **Storage**: Azure Blob Storage (Azurite for local development)
 - **Frontend**: Server-side rendered HTML with Bootstrap CSS, Quill.js for rich text editing
+ - **Frontend**: Server-side rendered HTML with Bootstrap CSS, Toast UI Editor for Markdown editing, KaTeX for math rendering, and Highlight.js/Prism for code syntax highlighting
 - **Infrastructure**: Docker & Docker Compose for container orchestration
 - **External APIs**: DeepL for machine translation
 

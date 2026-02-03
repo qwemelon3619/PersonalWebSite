@@ -144,6 +144,10 @@ func (j *tokenManager) ValidateRefreshToken(tokenString string) (*Claims, error)
 	if !ok || !token.Valid {
 		return nil, errors.New("invalid token")
 	}
+	// Check expiration explicitly and return a consistent error
+	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now().UTC()) {
+		return nil, ErrTokenExpired
+	}
 	return claims, nil
 }
 

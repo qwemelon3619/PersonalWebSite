@@ -1,9 +1,14 @@
 {{ template "header.html" .}}
-<!-- Syntax Highlighting Styles -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" />
+<!-- Toast UI Viewer + Syntax Highlighting + KaTeX -->
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.css" />
+<link rel="stylesheet"
+    href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
 
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+<script
+    src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
@@ -17,6 +22,47 @@
     .article-content img {
         max-width: 100%;
         height: auto;
+    }
+</style>
+
+<style>
+    /* Match editor preview typography and spacing */
+    .article-content {
+        font-size: 18px;
+        line-height: 1.7;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        color: #222;
+    }
+
+    .article-content * {
+        font-size: inherit !important;
+        font-family: inherit !important;
+    }
+
+    /* Code block styling consistent with editor preview */
+    .article-content pre {
+        background-color: #e6f3ff !important;
+        padding: 1rem;
+        border-radius: 6px;
+        overflow: auto;
+    }
+
+    .article-content pre code,
+    .article-content code {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+        font-size: 0.95em;
+    }
+
+    /* Make tables responsive and readable */
+    .article-content table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .article-content th,
+    .article-content td {
+        border: 1px solid #e9ecef;
+        padding: 0.5rem;
     }
 </style>
 
@@ -92,13 +138,14 @@
                             </div>
                         </div>
 
-                        <!-- HTML content for both languages -->
-                        <div id="content-en" class="article-content">
-                            {{ .post.EnContent }}
-                        </div>
-                        <div id="content-ko" class="article-content" style="display: none;">
-                            {{ .post.Content }}
-                        </div>
+                        <!-- Toast UI Viewer containers for both languages -->
+                        <div id="viewer-en" class="article-content"></div>
+                        <div id="viewer-ko" class="article-content" style="display: none;"></div>
+
+                        <!-- Store raw markdown in hidden elements to avoid JS syntax issues in some environments -->
+                        <div id="markdown-data" style="display:none" data-en="{{ .post.EnContent }}"
+                            data-ko="{{ .post.Content }}"></div>
+
                         <div id="translation-notice" class="mt-3 text-muted small" style="display: none;">
                             Translated by DeepL
                         </div>
@@ -120,8 +167,8 @@
         const btnEn = document.getElementById('lang-en');
         const titleKo = document.getElementById('title-ko');
         const titleEn = document.getElementById('title-en');
-        const contentKo = document.getElementById('content-ko');
-        const contentEn = document.getElementById('content-en');
+        const viewerKoEl = document.getElementById('viewer-ko');
+        const viewerEnEl = document.getElementById('viewer-en');
         const translationNotice = document.getElementById('translation-notice');
 
         // Default to English
@@ -132,14 +179,16 @@
             btnEn.classList.remove('active');
             if (titleKo) titleKo.style.display = '';
             if (titleEn) titleEn.style.display = 'none';
-            if (contentKo) contentKo.style.display = '';
-            if (contentEn) contentEn.style.display = 'none';
+            if (viewerKoEl) viewerKoEl.style.display = '';
+            if (viewerEnEl) viewerEnEl.style.display = 'none';
             if (translationNotice) translationNotice.style.display = 'none';
             // Re-highlight code blocks after content change
             setTimeout(() => {
-                document.querySelectorAll('#content-ko pre code').forEach((block) => {
+                document.querySelectorAll('#viewer-ko pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
+                // Rebuild table of contents for Korean content
+                if (typeof buildTOC === 'function') buildTOC();
             }, 10);
         });
 
@@ -148,16 +197,146 @@
             btnKo.classList.remove('active');
             if (titleKo) titleKo.style.display = 'none';
             if (titleEn) titleEn.style.display = '';
-            if (contentKo) contentKo.style.display = 'none';
-            if (contentEn) contentEn.style.display = '';
+            if (viewerKoEl) viewerKoEl.style.display = 'none';
+            if (viewerEnEl) viewerEnEl.style.display = '';
             if (translationNotice) translationNotice.style.display = 'block';
             // Re-highlight code blocks after content change
             setTimeout(() => {
-                document.querySelectorAll('#content-en pre code').forEach((block) => {
+                document.querySelectorAll('#viewer-en pre code').forEach((block) => {
                     hljs.highlightElement(block);
                 });
+                // Rebuild table of contents for English content
+                if (typeof buildTOC === 'function') buildTOC();
             }, 10);
         });
+    });
+</script>
+<script>
+    // Build a floating table-of-contents from H2 headers inside the visible article content
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')           // Replace spaces with -
+            .replace(/[^\u0000-\u7F\w\-]+/g, '') // Remove non-ascii/word chars
+            .replace(/--+/g, '-')             // Replace multiple - with single -
+            .replace(/^-+/, '')               // Trim - from start
+            .replace(/-+$/, '');              // Trim - from end
+    }
+
+    function buildTOC() {
+        const tocContainer = document.getElementById('article-toc');
+        if (!tocContainer) return;
+        tocContainer.innerHTML = '';
+        // determine visible content container
+        const viewerEn = document.getElementById('viewer-en');
+        const viewerKo = document.getElementById('viewer-ko');
+        let content = viewerEn;
+        if (viewerKo && getComputedStyle(viewerKo).display !== 'none') content = viewerKo;
+        if (!content) return;
+
+        const headers = content.querySelectorAll('h2');
+        if (!headers || headers.length === 0) return;
+
+        const box = document.createElement('div');
+        box.className = 'toc-box p-3 bg-light border rounded';
+        const title = document.createElement('div');
+        title.className = 'fw-bold mb-2';
+        title.textContent = 'On This Page';
+        box.appendChild(title);
+
+        const ul = document.createElement('ul');
+        ul.className = 'list-unstyled small mb-0';
+
+        headers.forEach((h, idx) => {
+            if (!h.id || h.id.trim() === '') {
+                // simple slugify replacement
+                const slug = h.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                h.id = 'section-' + (slug || idx);
+            }
+            const li = document.createElement('li');
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.className = 'toc-link d-block text-decoration-none py-1';
+            a.textContent = h.textContent;
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.getElementById(h.id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // update active class
+                document.querySelectorAll('.toc-link').forEach(x => x.classList.remove('active'));
+                a.classList.add('active');
+            });
+            li.appendChild(a);
+            ul.appendChild(li);
+        });
+
+        box.appendChild(ul);
+        tocContainer.appendChild(box);
+
+        // highlight current section on scroll
+        const headingNodes = Array.from(headers);
+        function onScroll() {
+            const fromTop = window.scrollY + 110; // offset to account for sticky header
+            let current = headingNodes[0];
+            for (const h of headingNodes) {
+                if (h.offsetTop <= fromTop) current = h;
+                else break;
+            }
+            if (current) {
+                document.querySelectorAll('.toc-link').forEach(x => x.classList.remove('active'));
+                const activeLink = tocContainer.querySelector('a[href="#' + current.id + '"]');
+                if (activeLink) activeLink.classList.add('active');
+            }
+        }
+        window.removeEventListener('scroll', window._tocScrollHandler || function () { });
+        window._tocScrollHandler = onScroll;
+        window.addEventListener('scroll', window._tocScrollHandler);
+        // initial highlight
+        onScroll();
+    }
+
+    // TOC styling
+    const style = document.createElement('style');
+    style.textContent = `
+    #article-toc .toc-box{ max-height: 60vh; overflow:auto; }
+    #article-toc .toc-link{ color: #333; }
+    #article-toc .toc-link.active{ font-weight: 600; color: #0d6efd; }
+`;
+    document.head.appendChild(style);
+</script>
+<script>
+    // Initialize Toast UI Viewer instances using embedded markdown
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            const dataEl = document.getElementById('markdown-data');
+            const mdEn = dataEl ? dataEl.dataset.en : '';
+            const mdKo = dataEl ? dataEl.dataset.ko : '';
+
+            const { Editor } = toastui;
+            const { codeSyntaxHighlight } = Editor.plugin;
+            const enEl = document.querySelector('#viewer-en');
+            const koEl = document.querySelector('#viewer-ko');
+            if (enEl) {
+                window.__viewerEn = toastui.Editor.factory({
+                    el: enEl,
+                    viewer: true,
+                    initialValue: mdEn,
+                    plugins: [codeSyntaxHighlight],
+                    height: 'auto'
+                });
+            }
+            if (koEl) {
+                window.__viewerKo = toastui.Editor.factory({
+                    el: koEl,
+                    viewer: true,
+                    initialValue: mdKo,
+                    plugins: [codeSyntaxHighlight],
+                    height: 'auto'
+                });
+            }
+            // ensure TOC builds against viewer-rendered HTML
+            setTimeout(buildTOC, 100);
+        } catch (e) {
+            console.warn('Toast UI Viewer init failed:', e);
+        }
     });
 </script>
 </main>
