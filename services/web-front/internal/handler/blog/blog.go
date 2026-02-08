@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gomarkdown/markdown"
-	"github.com/microcosm-cc/bluemonday"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
@@ -56,6 +54,37 @@ type blogHandler struct {
 
 func NewBlogHandler(cfg *config.PostConfig) BlogHandler {
 	return &blogHandler{cfg: cfg}
+}
+
+// ensureImageURLs prepends base to relative image URLs in Markdown image syntax.
+// It leaves absolute URLs (http..., data:...) untouched and preserves optional title text.
+func ensureImageURLs(md, base string) string {
+	if md == "" {
+		return md
+	}
+	re := regexp.MustCompile(`!\[([^\]]*)\]\(\s*([^\)\s]+)[^\)]*\)`)
+	return re.ReplaceAllStringFunc(md, func(m string) string {
+		sub := re.FindStringSubmatch(m)
+		if len(sub) < 3 {
+			return m
+		}
+		urlPart := sub[2]
+		// skip absolute URLs and data URIs
+		if strings.HasPrefix(urlPart, "http") || strings.HasPrefix(urlPart, "data:") {
+			return m
+		}
+		// join base and urlPart without duplicate slashes
+		joined := base
+		if strings.HasSuffix(joined, "/") && strings.HasPrefix(urlPart, "/") {
+			joined = joined[:len(joined)-1] + urlPart
+		} else if !strings.HasSuffix(joined, "/") && !strings.HasPrefix(urlPart, "/") {
+			joined = joined + "/" + urlPart
+		} else {
+			joined = joined + urlPart
+		}
+		// replace only the first occurrence of the urlPart to preserve title/other attrs
+		return strings.Replace(m, urlPart, joined, 1)
+	})
 }
 
 func (h *blogHandler) List(c *gin.Context) {
@@ -265,6 +294,13 @@ func (h *blogHandler) Article(c *gin.Context) {
 	if post.EnContent != "" {
 		enContentStr = post.EnContent // English content (raw Markdown)
 	}
+	//Add full url to images in content if relative
+	// Use regex to find image markdown syntax ![alt](url)
+	// add base URL if url is relative
+	contentStr = ensureImageURLs(contentStr, h.cfg.ImageBaseURL)
+	if enContentStr != "" {
+		enContentStr = ensureImageURLs(enContentStr, h.cfg.ImageBaseURL)
+	}
 
 	userIdStr, err := c.Cookie("userId")
 	userId := uint(0)
@@ -372,42 +408,4 @@ func (h *blogHandler) Remove(c *gin.Context) {
 		return
 	}
 	c.Redirect(http.StatusFound, "/blog")
-}
-
-// processContentForDisplay processes Markdown and prefixes image URLs with baseURL.
-func (h *blogHandler) processContentForDisplay(content string) string {
-	// Convert Markdown to HTML
-	htmlBytes := markdown.ToHTML([]byte(content), nil, nil)
-	htmlStr := string(htmlBytes)
-
-	// Process image URLs to prefix with base URL if relative
-	// Use regex to find <img src="..."> tags
-	re := regexp.MustCompile(`<img[^>]+src="([^"]+)"[^>]*>`)
-	htmlStr = re.ReplaceAllStringFunc(htmlStr, func(match string) string {
-		submatches := re.FindStringSubmatch(match)
-		if len(submatches) < 2 {
-			return match
-		}
-		src := submatches[1]
-
-		// Skip absolute URLs and data URLs
-		if strings.HasPrefix(src, "http") || strings.HasPrefix(src, "data:") {
-			return match
-		}
-
-		base := h.cfg.ImageBaseURL
-		if strings.HasPrefix(src, "/") {
-			src = base + src
-		} else {
-			src = strings.TrimRight(base, "/") + "/" + src
-		}
-
-		// Replace the src in the match
-		return strings.Replace(match, submatches[1], src, 1)
-	})
-
-	// Sanitize generated HTML to prevent XSS and avoid double-escaped entities
-	p := bluemonday.UGCPolicy()
-	safe := p.Sanitize(htmlStr)
-	return safe
 }

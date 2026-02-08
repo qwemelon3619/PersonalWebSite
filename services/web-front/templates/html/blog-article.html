@@ -13,11 +13,6 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
 <style>
-    /* Light sky blue background for code blocks */
-    pre {
-        background-color: #e6f3ff !important;
-    }
-
     /* Responsive images in article content */
     .article-content img {
         max-width: 100%;
@@ -115,7 +110,11 @@
                                 <span id="title-en">{{if
                                     .post.EnTitle}}{{.post.EnTitle}}{{else}}{{.post.Title}}{{end}}</span>
                             </h1>
-                            <div class="text-muted fst-italic mb-2">{{ .post.UpdatedAt.Format "January 2, 2006" }}</div>
+                            <div class="text-muted fst-italic mb-2">
+                                <span>Created: {{ .post.CreatedAt.Format "January 2, 2006" }}</span>
+                                <span class="mx-2">•</span>
+                                <span>Updated: {{ .post.UpdatedAt.Format "January 2, 2006" }}</span>
+                            </div>
                             {{ if .post.Tags }}
                             <div class="mb-3">
                                 {{ range $i, $t := .post.Tags }}

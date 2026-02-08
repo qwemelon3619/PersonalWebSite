@@ -98,7 +98,6 @@ func (a *imageAdapterImpl) ProcessMarkdownForImages(content string, userID uint)
 			// Log error but keep original data URL to avoid breaking content
 			return match
 		}
-
 		// Replace with uploaded URL
 		return fmt.Sprintf("![%s](%s)", alt, uploadedURL)
 	}), nil
