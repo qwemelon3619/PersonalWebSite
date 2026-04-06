@@ -15,6 +15,30 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/service"
 )
 
+type postRoutesHandler interface {
+	GetPosts(c *gin.Context)
+	GetPost(c *gin.Context)
+	GetTags(c *gin.Context)
+	CreatePost(c *gin.Context)
+	UpdatePost(c *gin.Context)
+	DeletePost(c *gin.Context)
+}
+
+func registerRoutes(r *gin.Engine, h postRoutesHandler, logger *logger.Logger) {
+	r.GET("/health", func(c *gin.Context) {
+		logger.Info("health check OK")
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+	r.GET("/posts", h.GetPosts)
+	r.GET("/posts/:id", h.GetPost)
+	r.GET("/tags", h.GetTags)
+	r.POST("/posts", h.CreatePost)
+	r.PUT("/posts/:id", h.UpdatePost)
+	r.DELETE("/posts/:id", h.DeletePost)
+}
+
 func main() {
 
 	conf := config.LoadPostConfig()
@@ -39,18 +63,7 @@ func main() {
 	h := handler.NewPostHandler(svc)
 
 	r := gin.Default()
-	r.GET("/health", func(c *gin.Context) {
-		logger.Info("health check OK")
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
-	r.GET("/posts", h.GetPosts)
-	r.GET("/posts/:id", h.GetPost)
-	r.GET("/tags", h.GetTags)
-	r.POST("/posts", h.CreatePost)
-	r.PUT("/posts/:id", h.UpdatePost)
-	r.DELETE("/posts/:id", h.DeletePost)
+	registerRoutes(r, h, logger)
 
 	if err := r.Run(":" + conf.ServerPort); err != nil {
 		log.Fatalf("failed to run server: %v", err)

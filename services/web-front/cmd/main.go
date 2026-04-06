@@ -46,6 +46,7 @@ func main() {
 
 	r.GET("/", pageH.Index)
 	r.GET("/about", pageH.About)
+	r.GET("/system", pageH.System)
 
 	r.GET("/login", authH.Login)
 	r.GET("/logout", authH.Logout)

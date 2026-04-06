@@ -10,12 +10,17 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/img-service/internal/config"
 )
 
+type BlobClient interface {
+	UploadBuffer(ctx context.Context, containerName string, blobName string, data []byte, o *azblob.UploadBufferOptions) (azblob.UploadBufferResponse, error)
+	DeleteBlob(ctx context.Context, containerName string, blobName string, o *azblob.DeleteBlobOptions) (azblob.DeleteBlobResponse, error)
+}
+
 type ImgRepository struct {
-	BlobClient *azblob.Client
+	BlobClient BlobClient
 	config     config.BlobConfig
 }
 
-func NewImgRepository(blobClient *azblob.Client, config config.BlobConfig) *ImgRepository {
+func NewImgRepository(blobClient BlobClient, config config.BlobConfig) *ImgRepository {
 	return &ImgRepository{BlobClient: blobClient, config: config}
 }
 func (r *ImgRepository) UploadBlogImageToBlob(ctx context.Context, file []byte, filePath string, contentType string) error {

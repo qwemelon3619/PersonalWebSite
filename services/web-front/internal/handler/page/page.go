@@ -13,6 +13,7 @@ import (
 type PageHandler interface {
 	Index(c *gin.Context)
 	About(c *gin.Context)
+	System(c *gin.Context)
 	Contact(c *gin.Context)
 	OpenSource(c *gin.Context)
 	Error(c *gin.Context)
@@ -71,6 +72,16 @@ func (h *pageHandler) About(c *gin.Context) {
 		isLoggedIn = true
 	}
 	c.HTML(http.StatusOK, "about.html", gin.H{
+		"isLoggedIn": isLoggedIn,
+	})
+}
+
+func (h *pageHandler) System(c *gin.Context) {
+	isLoggedIn := false
+	if _, err := c.Cookie("access_token"); err == nil {
+		isLoggedIn = true
+	}
+	c.HTML(http.StatusOK, "system.html", gin.H{
 		"isLoggedIn": isLoggedIn,
 	})
 }

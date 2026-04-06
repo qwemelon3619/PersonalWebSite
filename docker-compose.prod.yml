@@ -1,0 +1,155 @@
+version: "3.8"
+
+services:
+  postgres:
+    env_file:
+      - .env.prod
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-blog_db}
+      POSTGRES_USER: ${POSTGRES_USER:-blog_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blog_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-blog_user} -d ${POSTGRES_DB:-blog_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    env_file:
+      - .env.prod
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - blog_network
+
+  auth-service:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      - POSTGRE_CONNECTION_STRING=${POSTGRE_CONNECTION_STRING:?set POSTGRE_CONNECTION_STRING}
+      - REDIS_DB_URL=redis
+      - REDIS_DB_PORT=6379
+      - REDIS_DB_PASSWORD=${REDIS_DB_PASSWORD:-}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?set JWT_SECRET_KEY}
+      - SERVER_PORT=8081
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET}
+      - MYDOMAIN=${MYDOMAIN:?set MYDOMAIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - blog_network
+
+  post-service:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: services/post-service/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      - POSTGRE_CONNECTION_STRING=${POSTGRE_CONNECTION_STRING:?set POSTGRE_CONNECTION_STRING}
+      - REDIS_DB_URL=redis
+      - REDIS_DB_PORT=6379
+      - REDIS_DB_PASSWORD=${REDIS_DB_PASSWORD:-}
+      - IMAGE_SERVICE_URL=http://img-service:8083
+      - SERVER_PORT=8082
+      - TRANSLATION_API_URL=${TRANSLATION_API_URL:-https://api-free.deepl.com/v2/translate}
+      - TRANSLATION_API_KEY=${TRANSLATION_API_KEY:?set TRANSLATION_API_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - blog_network
+
+  img-service:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: services/img-service/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING:?set AZURE_STORAGE_CONNECTION_STRING}
+      - BLOB_CONTAINER_NAME=${BLOB_CONTAINER_NAME:?set BLOB_CONTAINER_NAME}
+      - BLOB_ACCOUNT_NAME=${BLOB_ACCOUNT_NAME:?set BLOB_ACCOUNT_NAME}
+      - SERVER_PORT=8083
+    networks:
+      - blog_network
+
+  api-gateway:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - POST_SERVICE_URL=http://post-service:8082
+      - IMG_SERVICE_URL=http://img-service:8083
+      - SERVER_PORT=8080
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?set JWT_SECRET_KEY}
+    depends_on:
+      - auth-service
+      - post-service
+    networks:
+      - blog_network
+
+  web-front:
+    env_file:
+      - .env.prod
+    build:
+      context: .
+      dockerfile: services/web-front/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - IMAGE_BASE_URL=${IMAGE_BASE_URL:?set IMAGE_BASE_URL}
+      - SERVER_PORT=3001
+      - MYDOMAIN=${MYDOMAIN:?set MYDOMAIN}
+    depends_on:
+      - api-gateway
+    networks:
+      - blog_network
+
+  nginx:
+    env_file:
+      - .env.prod
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web-front
+    networks:
+      - blog_network
+
+volumes:
+  postgres_data:
+
+networks:
+  blog_network:
+    driver: bridge

@@ -120,23 +120,27 @@ func (h *postHandler) Save(c *gin.Context) {
 		return
 	}
 	defer resp.Body.Close()
-	var body Post
-	err = json.NewDecoder(resp.Body).Decode(&body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to parse response"))
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to read response"))
 		return
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errMsg map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errMsg)
-		msg := ""
-		if errMsg["error"] != nil {
-			msg = fmt.Sprint(errMsg["error"])
+		var errMsg struct {
+			Error string `json:"error"`
 		}
+		_ = json.Unmarshal(respBody, &errMsg)
+		msg := strings.TrimSpace(errMsg.Error)
 		if msg == "" {
 			msg = "Failed to save post"
 		}
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape(msg))
+		return
+	}
+
+	var body Post
+	if err := json.Unmarshal(respBody, &body); err != nil {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to parse response"))
 		return
 	}
 	c.Redirect(http.StatusFound, "/blog/"+strconv.FormatUint(uint64(body.ID), 10))

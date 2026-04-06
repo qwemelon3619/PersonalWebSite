@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -9,12 +10,17 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/img-service/internal/service"
 )
 
+type BlogImageService interface {
+	UploadBlogImage(ctx context.Context, filename string, data string, userId int) (*model.ImageResponse, error)
+	DeleteBlogImage(ctx context.Context, filePath string) error
+}
+
 type imageHandler struct {
-	service service.ImgService
+	service BlogImageService
 }
 
 func NewBlogImageHandler(service *service.ImgService) *imageHandler {
-	return &imageHandler{service: *service}
+	return &imageHandler{service: service}
 }
 
 func (h *imageHandler) UploadBlogImageHandler(c *gin.Context) {

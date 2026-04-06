@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/microcosm-cc/bluemonday"
 	"seungpyo.lee/PersonalWebSite/services/web-front/internal/config"
 )
 
@@ -84,6 +85,33 @@ func ensureImageURLs(md, base string) string {
 		}
 		// replace only the first occurrence of the urlPart to preserve title/other attrs
 		return strings.Replace(m, urlPart, joined, 1)
+	})
+}
+
+// ensureImageSrcURLs rewrites relative img src paths in HTML to absolute paths.
+func ensureImageSrcURLs(htmlStr, base string) string {
+	if htmlStr == "" {
+		return htmlStr
+	}
+	re := regexp.MustCompile(`(<img[^>]*\ssrc=["'])([^"']+)(["'])`)
+	return re.ReplaceAllStringFunc(htmlStr, func(m string) string {
+		sub := re.FindStringSubmatch(m)
+		if len(sub) < 4 {
+			return m
+		}
+		src := sub[2]
+		if strings.HasPrefix(src, "http") || strings.HasPrefix(src, "data:") {
+			return m
+		}
+		joined := base
+		if strings.HasSuffix(joined, "/") && strings.HasPrefix(src, "/") {
+			joined = joined[:len(joined)-1] + src
+		} else if !strings.HasSuffix(joined, "/") && !strings.HasPrefix(src, "/") {
+			joined = joined + "/" + src
+		} else {
+			joined = joined + src
+		}
+		return strings.Replace(m, src, joined, 1)
 	})
 }
 
@@ -239,9 +267,6 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 	}
 	// Convert thumbnail to full URL if relative
 	if post.Thumbnail != "" && !strings.HasPrefix(post.Thumbnail, "http") {
-		if h.cfg.ImageBaseURL == "" {
-			h.cfg.ImageBaseURL = "/data"
-		}
 		post.Thumbnail = h.cfg.ImageBaseURL + post.Thumbnail
 	}
 	// For editing, pass raw Markdown content (not processed HTML)
@@ -291,15 +316,18 @@ func (h *blogHandler) Article(c *gin.Context) {
 	// Keep raw markdown; rendering will be done client-side using Toast UI Viewer
 	contentStr := post.Content // Korean content (raw Markdown)
 	enContentStr := ""
+	enContentHTML := ""
 	if post.EnContent != "" {
-		enContentStr = post.EnContent // English content (raw Markdown)
+		// English content is stored as translated HTML.
+		enContentHTML = post.EnContent
 	}
 	//Add full url to images in content if relative
 	// Use regex to find image markdown syntax ![alt](url)
 	// add base URL if url is relative
 	contentStr = ensureImageURLs(contentStr, h.cfg.ImageBaseURL)
-	if enContentStr != "" {
-		enContentStr = ensureImageURLs(enContentStr, h.cfg.ImageBaseURL)
+	if enContentHTML != "" {
+		enContentHTML = ensureImageSrcURLs(enContentHTML, h.cfg.ImageBaseURL)
+		enContentHTML = bluemonday.UGCPolicy().Sanitize(enContentHTML)
 	}
 
 	userIdStr, err := c.Cookie("userId")
@@ -315,19 +343,20 @@ func (h *blogHandler) Article(c *gin.Context) {
 	}
 	c.HTML(http.StatusOK, "blog-article.html", gin.H{
 		"post": gin.H{
-			"ID":          post.ID,
-			"Title":       post.Title,
-			"EnTitle":     post.EnTitle,
-			"Content":     contentStr,   // raw Markdown
-			"EnContent":   enContentStr, // raw Markdown
-			"Thumbnail":   post.Thumbnail,
-			"AuthorID":    post.AuthorID,
-			"Author":      post.Author,
-			"Published":   post.Published,
-			"PublishedAt": post.PublishedAt,
-			"CreatedAt":   post.CreatedAt,
-			"UpdatedAt":   post.UpdatedAt,
-			"Tags":        post.Tags,
+			"ID":            post.ID,
+			"Title":         post.Title,
+			"EnTitle":       post.EnTitle,
+			"Content":       contentStr,   // raw Markdown
+			"EnContent":     enContentStr, // retained for compatibility
+			"EnContentHTML": enContentHTML,
+			"Thumbnail":     post.Thumbnail,
+			"AuthorID":      post.AuthorID,
+			"Author":        post.Author,
+			"Published":     post.Published,
+			"PublishedAt":   post.PublishedAt,
+			"CreatedAt":     post.CreatedAt,
+			"UpdatedAt":     post.UpdatedAt,
+			"Tags":          post.Tags,
 		},
 		"userId":     userId,
 		"isLoggedIn": isLoggedIn,

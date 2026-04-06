@@ -1,57 +1,32 @@
 {{ template "header.html" . }}
 <section class="py-5">
     <div class="container">
-        <div class="row align-items-center py-5">
-            <div class="col-lg-7">
+        <div class="row justify-content-center py-5">
+            <div class="col-lg-9 col-xl-8 text-center pt-lg-5">
                 <div class="mono-text mb-3">// Backend Developer in Tokyo</div>
                 <h1 class="display-3 fw-bold mb-4">SeungPyo's Dev Blog</h1>
-                <p class="fs-4 text-muted mb-5">Building scalable systems with <span class="text-dark fw-bold">Go, Gin,
-                        and Docker.</span></p>
-                <div class="d-flex gap-3">
-                    <a href="/blog" class="btn btn-orange btn-lg px-5">Explore Blog</a>
-                    <a href="/about" class="btn btn-outline-dark btn-lg px-5">About Me</a>
+                <p class="fs-4 text-muted mb-4">
+                    Building scalable systems with <span class="text-dark fw-bold">Go, Gin, PostgreSQL, Redis, and Docker.</span>
+                </p>
+                <p class="text-muted mb-5">
+                    I write about backend engineering, while this site itself serves as a practical portfolio project
+                    for authentication flow design, service boundaries, and production-style local infrastructure.
+                </p>
+                <div class="d-flex gap-3 flex-wrap justify-content-center align-items-center">
+                    <a href="/blog" class="btn btn-orange btn-lg px-4 text-center" style="min-width: 220px;">Explore Blog</a>
+                    <a href="/about" class="btn btn-outline-dark btn-lg px-4 text-center" style="min-width: 220px;">About Me</a>
+                    <a href="/system" class="btn btn-outline-secondary btn-lg px-4 text-center" style="min-width: 220px;">View System Design</a>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<section class="py-5 bg-white bg-opacity-50">
-    <div class="container py-5">
-        <h2 class="section-title">Architecture Highlights</h2>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card-custom p-4 h-100 border-0 shadow-sm">
-                    <div class="text-warning mb-3"><i class="bi bi-diagram-3 fs-1"></i></div>
-                    <h4 class="fw-bold">Microservices Architecture</h4>
-                    <p class="text-muted">Decoupled services (API Gateway, Auth, Post, Image) communicating via HTTP,
-                        enabling independent scaling and deployment.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card-custom p-4 h-100 border-0 shadow-sm">
-                    <div class="text-info mb-3"><i class="bi bi-box-seam fs-1"></i></div>
-                    <h4 class="fw-bold">Container Orchestration</h4>
-                    <p class="text-muted">Docker Compose for local development with health checks, volumes, and
-                        networking, simulating production environments.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card-custom p-4 h-100 border-0 shadow-sm">
-                    <div class="text-primary mb-3"><i class="bi bi-gear fs-1"></i></div>
-                    <h4 class="fw-bold">Azure Infrastructure Automation</h4>
-                    <p class="text-muted">Automated deployments using Azure Bicep templates for scalable, cloud-native
-                        infrastructure with blob storage and databases.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 <section class="py-5 mb-5">
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-5">
             <h2 class="section-title mb-0">Latest Articles</h2>
-            <a href="/blog" class="fw-bold text-decoration-none nav-link">View all articles →</a>
+            <a href="/blog" class="fw-bold text-decoration-none nav-link">View all articles -></a>
         </div>
         <div class="row g-4">
             {{ if .posts }}

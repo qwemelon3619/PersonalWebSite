@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/gomarkdown/markdown"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
 )
@@ -119,19 +118,6 @@ func (t *translationAdapterImpl) TranslateSingle(text string) (string, error) {
 	return res[0], nil
 }
 
-func (t *translationAdapterImpl) htmlToMarkdown(htmlStr string) (string, error) {
-	converter := md.NewConverter("", true, nil)
-	markdown, err := converter.ConvertString(htmlStr)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert HTML to Markdown: %w", err)
-	}
-
-	// Fix extra newlines before code blocks
-	markdown = strings.ReplaceAll(markdown, "\n\n```", "\n```")
-
-	return markdown, nil
-}
-
 // maskHTML adds translate="no" to img and code/pre tags to prevent translation.
 func (t *translationAdapterImpl) maskHTML(htmlStr string) string {
 	// Add translate="no" to img tags
@@ -156,7 +142,7 @@ func (t *translationAdapterImpl) maskHTML(htmlStr string) string {
 	return htmlStr
 }
 
-// TranslateMarkdown translates Markdown via HTML conversion.
+// TranslateMarkdown translates Markdown and returns translated HTML.
 func (t *translationAdapterImpl) TranslateMarkdown(content string) (string, error) {
 	// Convert Markdown to HTML
 	htmlStr := t.markdownToHTML(content)
@@ -174,11 +160,5 @@ func (t *translationAdapterImpl) TranslateMarkdown(content string) (string, erro
 	}
 	translatedHTML := translatedHTMLs[0]
 
-	// Convert back to Markdown
-	translatedMarkdown, err := t.htmlToMarkdown(translatedHTML)
-	if err != nil {
-		return "", fmt.Errorf("failed to convert HTML back to Markdown: %w", err)
-	}
-
-	return translatedMarkdown, nil
+	return translatedHTML, nil
 }

@@ -1,0 +1,196 @@
+{{ template "header.html" . }}
+
+<div class="container py-5">
+    <div class="row align-items-center py-4 g-4">
+        <div class="col-lg-8">
+            <div class="mono-text mb-3">// System Design</div>
+            <h1 class="display-5 fw-bold mb-3">How this site is built</h1>
+            <p class="text-muted mb-0" style="max-width: 760px;">
+                This page explains the architecture and engineering decisions behind the blog platform:
+                request routing, auth enforcement, image handling, asynchronous translation, and deployment shape.
+            </p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <a href="/" class="btn btn-outline-dark px-4">Back Home</a>
+        </div>
+    </div>
+
+    <div class="card-custom p-4 p-xl-5 border-0 shadow-sm mb-4">
+        <h4 class="section-title">Runtime Architecture</h4>
+        <div class="bg-white border rounded-4 p-3 p-lg-4 mb-4 overflow-auto">
+            <pre class="mermaid mb-0" style="min-width: 720px;">
+flowchart LR
+    U[User Browser]
+    N[Nginx]
+    G[API Gateway]
+    W[Web Front]
+    A[Auth Service]
+    P[Post Service]
+    I[Image Service]
+    PG[(PostgreSQL)]
+    R[(Redis)]
+    B[(Azure Blob / Azurite)]
+    D[DeepL API]
+
+    U --> N
+    N --> W
+    N --> G
+    W --> G
+
+    G --> A
+    G --> P
+
+    A --> PG
+    A --> R
+
+    P --> PG
+    P --> I
+    P --> D
+
+    I --> B
+            </pre>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">Entry</div>
+                    <h6 class="fw-bold">Browser -> Nginx</h6>
+                    <p class="small text-muted mb-0">
+                        Nginx fronts the stack and splits traffic between the SSR app, API Gateway, and image path.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">Core</div>
+                    <h6 class="fw-bold">Web / Gateway / Services</h6>
+                    <p class="small text-muted mb-0">
+                        `web-front`, `api-gateway`, `auth-service`, `post-service`, and `img-service` each own a clear responsibility.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">State</div>
+                    <h6 class="fw-bold">PostgreSQL / Redis / Blob</h6>
+                    <p class="small text-muted mb-0">
+                        Persistent data, token lifecycle state, and media storage are externalized from the app processes.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+                <h4 class="section-title">Auth and Token Flow</h4>
+                <ol class="text-muted mb-0 ps-3">
+                    <li class="mb-2">The login flow starts from `web-front` and redirects through Google OAuth.</li>
+                    <li class="mb-2">`auth-service` validates the callback and issues access and refresh tokens.</li>
+                    <li class="mb-2">Protected write requests pass through `api-gateway` first.</li>
+                    <li class="mb-2">If an access token is expired, the gateway attempts refresh through `auth-service`.</li>
+                    <li>`post-service` receives authenticated write traffic only after gateway validation succeeds.</li>
+                </ol>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+                <h4 class="section-title">Post and Image Flow</h4>
+                <ol class="text-muted mb-0 ps-3">
+                    <li class="mb-2">Authors submit markdown content and optional thumbnail data from the web UI.</li>
+                    <li class="mb-2">`post-service` processes embedded image references before persistence.</li>
+                    <li class="mb-2">`img-service` handles upload and delete responsibilities for binary assets.</li>
+                    <li class="mb-2">Post content stores URLs instead of raw image payloads.</li>
+                    <li>Blob storage uses Azurite in local development and Azure Blob-compatible flow in deployment.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+                <h4 class="section-title">Translation Pipeline</h4>
+                <ol class="text-muted mb-0 ps-3">
+                    <li class="mb-2">Korean source content is stored as the canonical write result.</li>
+                    <li class="mb-2">The post create or update path returns without waiting on external translation latency.</li>
+                    <li class="mb-2">A background goroutine translates title and HTML-rendered content through DeepL.</li>
+                    <li>Translated English fields are persisted later to support bilingual presentation.</li>
+                </ol>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+                <h4 class="section-title">Deployment Topology</h4>
+                <ol class="text-muted mb-0 ps-3">
+                    <li class="mb-2">Docker Compose provides a full local stack with PostgreSQL, Redis, Azurite, Nginx, and all Go services.</li>
+                    <li class="mb-2">Service boundaries remain explicit in both local and deployment environments.</li>
+                    <li class="mb-2">GitHub Actions runs module tests before image build and push.</li>
+                    <li>The project has been moved toward Oracle Cloud free tier hosting while keeping the service layout intact.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-custom p-4 p-xl-5 border-0 shadow-sm">
+        <h4 class="section-title">Why This Structure Matters</h4>
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">01</div>
+                    <h6 class="fw-bold">Single auth boundary</h6>
+                    <p class="small text-muted mb-0">Gateway-centered enforcement keeps protected write behavior consistent.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">02</div>
+                    <h6 class="fw-bold">Short write path</h6>
+                    <p class="small text-muted mb-0">Async translation prevents external APIs from slowing author actions.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">03</div>
+                    <h6 class="fw-bold">Isolated media handling</h6>
+                    <p class="small text-muted mb-0">Image storage is decoupled from post domain logic and database concerns.</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="border rounded-3 p-3 bg-white h-100">
+                    <div class="mono-text mb-2">04</div>
+                    <h6 class="fw-bold">Operational realism</h6>
+                    <p class="small text-muted mb-0">Compose, CI, externalized state, and health checks make the project portfolio-grade.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'base',
+        themeVariables: {
+            primaryColor: '#fff4ec',
+            primaryTextColor: '#333333',
+            primaryBorderColor: '#ff9f67',
+            lineColor: '#222222',
+            tertiaryColor: '#fdf2ea',
+            secondaryColor: '#fff8f4',
+            clusterBkg: '#fff8f4',
+            clusterBorder: '#ffb48a',
+            edgeLabelBackground: '#fff4ec',
+            mainBkg: '#fff4ec',
+            nodeBorder: '#ff9f67',
+            defaultLinkColor: '#222222',
+            titleColor: '#333333',
+            textColor: '#333333',
+            fontFamily: '"Noto Sans KR", "Noto Sans JP", "Inter", sans-serif'
+        }
+    });
+</script>
+
+{{ template "footer.html" . }}

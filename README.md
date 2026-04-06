@@ -1,154 +1,243 @@
+# PersonalWebSite
 
+Multi-service personal blog platform built with Go, Gin, PostgreSQL, Redis, Nginx, and Docker Compose.
 
-# Personal Blog MSA
+The repository is organized like a small production system rather than a single app:
 
-A Go-based microservices blog platform featuring multilingual support, automatic translation, and cloud-native architecture.
-
-## Architecture
-
-This project follows a microservices architecture with clean separation of concerns, enabling independent scaling and deployment of each service.
-
-### Services
-
-- **API Gateway** (`services/api-gateway`): Single entry point using Gin framework. Handles JWT token validation, request routing, and proxies to backend services.
-- **Auth Service** (`services/auth-service`): Manages user authentication, registration, login, JWT token generation/refresh, and Redis-backed token blacklisting.
-- **Post Service** (`services/post-service`): Handles blog post CRUD operations, tag management, and integrates with translation and image services.
-- **Image Service** (`services/img-service`): Dedicated image upload service that stores files in Azure Blob Storage (Azurite for local development).
-- **Web Front** (`services/web-front`): Server-rendered web interface using Go HTML templates, providing the public blog website.
-
-### Shared Components
-
-- **Shared Packages** (`pkg/`): Reusable components including JWT utilities, middleware, database connections, configuration management, and logging.
-- **Infrastructure**: Docker Compose orchestration with PostgreSQL database, Redis cache, and Azurite blob storage emulator.
+- `web-front` serves SSR pages
+- `api-gateway` centralizes authenticated API access
+- `auth-service` handles Google OAuth, JWT issuance, and refresh-token rotation
+- `post-service` manages posts, tags, image references, and async translation
+- `img-service` manages image upload and deletion against blob storage
 
 ## Features
 
-### Core Functionality
+- Server-rendered blog pages and authoring UI
+- Google OAuth login for the blog owner
+- JWT access token validation at the API Gateway
+- Refresh-token rotation backed by Redis
+- Markdown-based post writing with image upload support
+- Tag management for posts
+- Asynchronous Korean-to-English translation for posts
+- Azure Blob Storage support, with Azurite for local development
+- Docker Compose based local and production-like environments
+- Unit and integration tests across services
 
-- **User Authentication**: JWT-based login/registration with secure token management
-- **Blog Management**: Full CRUD operations for blog posts with Markdown editing using Toast UI Editor (preview, KaTeX support, syntax highlighting)
-- **Image Handling**: Seamless image uploads integrated into blog content
-- **Tag System**: Post categorization and filtering by tags
+## Architecture
 
-### Advanced Features
+```mermaid
+flowchart LR
+    U[User Browser]
+    N[Nginx]
+    G[API Gateway]
+    W[Web Front]
+    A[Auth Service]
+    P[Post Service]
+    I[Image Service]
+    PG[(PostgreSQL)]
+    R[(Redis)]
+    B[(Azure Blob / Azurite)]
+    D[DeepL API]
 
-- **Multilingual Support**: Automatic translation between Korean and English using DeepL API
-- **Dynamic Content Rendering**: Client-side language switching with preserved formatting
-- **Responsive UI**: Bootstrap-based design with table of contents generation
-- **Cloud Storage**: Azure Blob Storage integration for scalable media hosting
+    U --> N
+    N --> W
+    N --> G
+    W --> G
 
-### Technical Highlights
+    G --> A
+    G --> P
 
-- **Clean Architecture**: Each service follows domain-driven design with clear separation of handlers, services, and repositories
-- **Microservices Communication**: HTTP-based inter-service communication via API Gateway
-- **Containerization**: Full Docker support for consistent development and deployment environments
-- **Scalability**: Stateless services with externalized state management
+    A --> PG
+    A --> R
 
-## Technology Stack
+    P --> PG
+    P --> I
+    P --> D
 
-- **Backend**: Go 1.21+, Gin web framework
-- **Database**: PostgreSQL for persistent data, Redis for caching and token management
-- **Storage**: Azure Blob Storage (Azurite for local development)
-- **Frontend**: Server-side rendered HTML with Bootstrap CSS, Quill.js for rich text editing
- - **Frontend**: Server-side rendered HTML with Bootstrap CSS, Toast UI Editor for Markdown editing, KaTeX for math rendering, and Highlight.js/Prism for code syntax highlighting
-- **Infrastructure**: Docker & Docker Compose for container orchestration
-- **External APIs**: DeepL for machine translation
+    I --> B
+```
 
-## Quick Start
+## Services
 
-1. Ensure Docker and Docker Compose are installed
-2. Clone the repository and navigate to the project root
-3. Configure environment variables (see `docker-compose.yml` for required variables)
-4. Run the application:
+### `services/web-front`
+
+- Renders HTML pages with Gin templates
+- Provides blog list, article, login, edit, delete, about, and contact pages
+- Sends browser requests to the API Gateway
+
+### `services/api-gateway`
+
+- Proxies `/v1/auth/*` and `/v1/posts*` style requests
+- Validates access tokens for write operations
+- Attempts refresh flow when an access token is expired
+
+### `services/auth-service`
+
+- Supports Google OAuth login and callback flow
+- Issues access and refresh tokens
+- Rotates refresh tokens
+- Stores token revocation state in Redis
+- Exposes user lookup and refresh endpoints
+
+### `services/post-service`
+
+- Creates, reads, updates, and deletes posts
+- Manages tags
+- Uploads embedded images and thumbnails through `img-service`
+- Stores Korean source content as canonical content
+- Translates title and content asynchronously when translation config is present
+
+### `services/img-service`
+
+- Uploads and deletes blog images
+- Uses Azure Blob Storage in production
+- Uses Azurite in local Docker development
+
+### `pkg`
+
+- Shared JWT, config, logging, and utility code
+
+## Current Auth Model
+
+This project does not currently expose a general email/password registration flow.
+
+The implemented auth flow is:
+
+1. User starts login from the web app
+2. Browser is redirected to Google OAuth
+3. `auth-service` validates the callback and issues cookies
+4. `api-gateway` validates the access token on protected write routes
+5. If the access token is expired, the gateway triggers refresh through `auth-service`
+
+At the moment, Google OAuth login is effectively restricted to the configured owner account.
+
+## Translation Behavior
+
+`post-service` is designed so post creation and update do not block on translation.
+
+- Post data is stored first
+- Translation runs in a goroutine after persistence
+- English title and content are written back later
+- English content is stored as translated HTML
+
+Translation depends on external API configuration. In practice, local and production-like runs need valid translation-related environment variables because the service config treats them as required.
+
+## Key Routes
+
+### Browser-facing routes
+
+- `/`
+- `/about`
+- `/blog`
+- `/blog/:articleNumber`
+- `/blog-post`
+- `/blog-edit/:articleNumber`
+- `/blog-remove/:articleNumber`
+- `/login`
+- `/logout`
+- `/oauth/google`
+
+### Gateway API routes
+
+- `GET /v1/posts`
+- `GET /v1/posts/:id`
+- `GET /v1/tags`
+- `POST /v1/posts`
+- `PUT /v1/posts/:id`
+- `DELETE /v1/posts/:id`
+- `POST /v1/auth/refresh`
+- `GET /v1/auth/oauth/google/login`
+- `GET /v1/auth/oauth/google/callback`
+- `GET /v1/auth/users/:id`
+- `PUT /v1/auth/users/:id`
+
+## Local Development
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+- Google OAuth credentials
+- DeepL API key if translation is enabled
+
+### Environment files
+
+The repository includes:
+
+- `.env.dev`
+- `.env.prod`
+
+Before running locally, review `.env.dev` and make sure the values are appropriate for your environment. The services expect values such as:
+
+- `POSTGRE_CONNECTION_STRING`
+- `JWT_SECRET_KEY`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `MYDOMAIN`
+- `TRANSLATION_API_URL`
+- `TRANSLATION_API_KEY`
+- `AZURE_STORAGE_CONNECTION_STRING`
+- `BLOB_CONTAINER_NAME`
+
+### Run development stack
 
 ```bash
-docker-compose up --build
+docker compose -f docker-compose.dev.yml up --build
 ```
 
-5. Access the blog at `http://localhost:3000`
+Access the site at:
 
-## Project Structure
+- `http://localhost:3000`
 
+### Run production-like stack
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
 ```
+
+## Testing
+
+Run tests per Go module:
+
+```bash
+cd pkg && go test ./...
+cd services/api-gateway && go test ./...
+cd services/auth-service && go test ./...
+cd services/img-service && go test ./...
+cd services/post-service && go test ./...
+cd services/web-front && go test ./...
+```
+
+CI runs tests before Docker image build and push.
+
+## Repository Structure
+
+```text
+.
+├── .github/workflows/
+├── pkg/
 ├── services/
-│   ├── api-gateway/     # API Gateway service
-│   ├── auth-service/    # Authentication service
-│   ├── post-service/    # Blog post management
-│   ├── img-service/     # Image upload service
-│   └── web-front/       # Web frontend
-├── pkg/                 # Shared packages
-├── docker-compose.yml   # Container orchestration
+│   ├── api-gateway/
+│   ├── auth-service/
+│   ├── img-service/
+│   ├── post-service/
+│   └── web-front/
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── nginx.conf
+├── nginx.prod.conf
 └── README.md
 ```
 
-Hot-reload for web-front (dev)
+## Design Notes
 
-- The `web-front` service supports hot-reload using `air`. The dev `Dockerfile` installs `air` and `.air.toml` watches templates, static assets, and Go files.
-- To run only `web-front` in dev mode (with hot-reload):
+- Authentication enforcement is centralized in the API Gateway for protected write routes.
+- Translation is async to keep authoring latency predictable.
+- Image concerns are isolated from post domain logic.
+- Repository tests use `sqlmock` for deterministic query-level testing.
+- Docker Compose provides a full local stack, including PostgreSQL, Redis, Nginx, and Azurite.
 
-```bash
-AIR_DEV=1 docker-compose up --build web-front
-```
+## Contact
 
-Development notes
-
-- All services use env-based config. See `pkg/config/config.go` and each service's `internal/config` for required keys.
-- Run services individually for focused development:
-
-```bash
-cd services/auth-service && go run cmd/main.go
-cd services/post-service && go run cmd/main.go
-cd services/api-gateway && go run cmd/main.go
-```
-
-API endpoints (gateway)
-
-- `/api/v1/auth/*` → auth-service (login/register/refresh)
-- `/api/v1/posts*` → post-service (CRUD)
-
-Auth / Token flow
-
-- Access tokens are validated by the API Gateway middleware. Write routes require a valid access token.
-- Refresh tokens and blacklist logic are handled by `auth-service` using Redis. When access tokens expire, clients call `/api/v1/auth/refresh`.
-
-Image upload (Azure Blob Storage)
-
-- `post-service` exposes `POST /api/v1/upload-image` which accepts JSON: `filename`, `data` (base64 data URI or pure base64 string), and `mimeType`.
-- The handler decodes base64 and uploads the blob to the configured container, returning a URL.
-- For local testing you can use Azurite or a real Azure Storage account.
-
-Example curl (base64 upload):
-
-```bash
-DATA=$(base64 -w 0 local.jpg)
-curl -X POST http://localhost:8082/api/v1/upload-image \
-	-H "Content-Type: application/json" \
-	-d '{"filename":"local.jpg","data":"data:image/jpeg;base64,'"$DATA"'","mimeType":"image/jpeg"}'
-```
-
-CI / Image tagging
-
-- The GitHub Actions workflow uses `buildx` and tags images with the commit SHA by default.
-- If the workflow is triggered by a tag push, it uses the Git tag as the image tag instead of SHA.
-
-Useful commands
-
-- Build a single service locally:
-	```bash
-	cd services/web-front && go run cmd/main.go
-	```
-- Run only web-front with hot reload (dev):
-	```bash
-	AIR_DEV=1 docker-compose up --build web-front
-	```
-
-Tips & recommendations
-
-- For production on Azure, prefer Managed Identity or Service Principal instead of Shared Key.
-- Keep secrets out of `docker-compose.yml`; use CI/CD or platform-managed secrets.
-- If `web-front` fails to load templates in container, ensure the working directory and `GIN_MODE` align with the template paths.
-
-Contact
-
-Seung Pyo Lee (lspyo11@gmail.com)
-
+Seung Pyo Lee  
+`lspyo11@gmail.com`

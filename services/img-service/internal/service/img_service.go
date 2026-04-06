@@ -8,15 +8,23 @@ import (
 
 	"github.com/google/uuid"
 	"seungpyo.lee/PersonalWebSite/services/img-service/internal/model"
-	"seungpyo.lee/PersonalWebSite/services/img-service/internal/repository"
 )
 
-type ImgService struct {
-	Repo *repository.ImgRepository
+type ImgRepo interface {
+	UploadBlogImageToBlob(ctx context.Context, file []byte, filePath string, contentType string) error
+	DeleteBlob(ctx context.Context, filePath string) error
 }
 
-func NewImgService(repo *repository.ImgRepository) *ImgService {
+type ImgService struct {
+	Repo ImgRepo
+}
+
+func NewImgService(repo ImgRepo) *ImgService {
 	return &ImgService{Repo: repo}
+}
+
+var generateUUID = func() string {
+	return uuid.New().String()
 }
 
 func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data string, userId int) (*model.ImageResponse, error) {
@@ -55,9 +63,6 @@ func (s *ImgService) UploadBlogImage(ctx context.Context, filename string, data 
 		Name: filename,
 		Size: int64(len(data)),
 	}, nil
-}
-func generateUUID() string {
-	return uuid.New().String()
 }
 
 func (s *ImgService) DeleteBlogImage(ctx context.Context, filePath string) error {

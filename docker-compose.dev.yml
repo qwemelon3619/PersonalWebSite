@@ -1,6 +1,6 @@
-version: '3.8'
+version: "3.8"
+
 services:
-  # Database
   postgres:
     image: postgres:15-alpine
     environment:
@@ -14,32 +14,33 @@ services:
     networks:
       - blog_network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U blog_user -d blog_db" ]
+      test: ["CMD-SHELL", "pg_isready -U blog_user -d blog_db"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  # Redis for caching and sessions
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     networks:
       - blog_network
+
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
     command: "azurite-blob --blobHost 0.0.0.0 --loose --skipApiVersionCheck"
-    container_name: azurite
     ports:
-      - "10000:10000" # Blob service
-      - "10001:10001" # Queue service
-      - "10002:10002" # Table service
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
     volumes:
       - azurite_data:/data
     networks:
       - blog_network
 
   auth-service:
+    env_file:
+      - .env.dev
     build:
       context: .
       dockerfile: services/auth-service/Dockerfile
@@ -51,20 +52,20 @@ services:
       - REDIS_DB_PASSWORD=
       - JWT_SECRET_KEY=your-jwt-secret
       - SERVER_PORT=8081
-      - GOOGLE_CLIENT_ID=google-client-id
-      - GOOGLE_CLIENT_SECRET=google-client-secret
       - MYDOMAIN=http://localhost:3000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    networks:
-      - blog_network
     volumes:
       - .:/app
+    networks:
+      - blog_network
 
   post-service:
+    env_file:
+      - .env.dev
     build:
       context: .
       dockerfile: services/post-service/Dockerfile
@@ -76,37 +77,38 @@ services:
       - REDIS_DB_PASSWORD=
       - IMAGE_SERVICE_URL=http://img-service:8083
       - SERVER_PORT=8082
-      - TRANSLATION_API_URL=https://api-free.deepl.com/v2/translate
-      - TRANSLATION_API_KEY=your-translation-api-key
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    networks:
-      - blog_network
     volumes:
       - .:/app
+    networks:
+      - blog_network
 
   img-service:
+    env_file:
+      - .env.dev
     build:
       context: .
       dockerfile: services/img-service/Dockerfile
       target: dev
     environment:
-      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;     
+      - AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
       - BLOB_CONTAINER_NAME=blogcontainer
       - BLOB_ACCOUNT_NAME=devstoreaccount1
       - SERVER_PORT=8083
-    networks:
-      - blog_network
-    volumes:
-      - .:/app
     depends_on:
       - azurite
+    volumes:
+      - .:/app
+    networks:
+      - blog_network
 
-  # API Gateway
   api-gateway:
+    env_file:
+      - .env.dev
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
@@ -119,29 +121,32 @@ services:
       - JWT_SECRET_KEY=your-jwt-secret
     ports:
       - "8080:8080"
-    volumes:
-      - .:/app
     depends_on:
       - auth-service
       - post-service
+    volumes:
+      - .:/app
     networks:
       - blog_network
+
   web-front:
+    env_file:
+      - .env.dev
     build:
       context: .
       dockerfile: services/web-front/Dockerfile
       target: dev
     environment:
       - API_GATEWAY_URL=http://api-gateway:8080
-      - IMAGE_BASE_URL=/data/
+      - IMAGE_BASE_URL=/img/
       - SERVER_PORT=3001
       - MYDOMAIN=http://localhost:3000
     ports:
       - "3001:3001"
-    volumes:
-      - .:/app
     depends_on:
       - api-gateway
+    volumes:
+      - .:/app
     networks:
       - blog_network
 

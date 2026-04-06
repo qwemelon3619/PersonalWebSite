@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 
-	"github.com/microcosm-cc/bluemonday"
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/adapter"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/config"
@@ -23,6 +22,48 @@ type postService struct {
 // NewPostService creates a new PostService with the given repository.
 func NewPostService(postRepo domain.PostRepository, tagRepo domain.TagRepository, config *config.PostConfig, imageAdapter adapter.ImageAdapter, transAdapter adapter.TranslationAdapter) domain.PostService {
 	return &postService{postRepo: postRepo, tagRepo: tagRepo, config: config, imageAdapter: imageAdapter, transAdapter: transAdapter, logger: logger.New("info")}
+}
+
+func (s *postService) shouldTranslate() bool {
+	return s.config != nil && s.config.TranslationAPIURL != ""
+}
+
+func (s *postService) translateAndPersistAsync(postID uint, title string, content string, translateTitle bool, translateContent bool) {
+	go func() {
+		post, err := s.postRepo.GetByID(postID)
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to load post for async translation: %v", err))
+			return
+		}
+
+		updated := false
+
+		if translateTitle {
+			if t, err := s.transAdapter.TranslateSingle(title); err == nil {
+				post.EnTitle = t
+				updated = true
+				s.logger.Info(fmt.Sprintf("Translated title asynchronously for post %d", postID))
+			} else {
+				s.logger.Error(fmt.Sprintf("Failed to translate title asynchronously: %v", err))
+			}
+		}
+
+		if translateContent {
+			if t, err := s.transAdapter.TranslateMarkdown(content); err == nil {
+				post.EnContent = t
+				updated = true
+				s.logger.Info(fmt.Sprintf("Translated content asynchronously for post %d", postID))
+			} else {
+				s.logger.Error(fmt.Sprintf("Failed to translate content asynchronously: %v", err))
+			}
+		}
+
+		if updated {
+			if err := s.postRepo.Update(post); err != nil {
+				s.logger.Error(fmt.Sprintf("Failed to persist async translations: %v", err))
+			}
+		}
+	}()
 }
 
 // CreatePost creates a new blog post with the given request and author ID.
@@ -68,26 +109,9 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint) (*d
 		}
 	}
 
-	// Auto-translate if translation service configured
-	if s.config != nil && s.config.TranslationAPIURL != "" {
-		if t, err := s.transAdapter.TranslateSingle(post.Title); err == nil {
-			post.EnTitle = t
-			s.logger.Info(fmt.Sprintf("Translated title to: %s", t))
-		} else {
-			s.logger.Error(fmt.Sprintf("Failed to translate title: %v", err))
-		}
-
-		if t, err := s.transAdapter.TranslateMarkdown(processedContent); err == nil {
-			post.EnContent = t
-			s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
-		} else {
-			s.logger.Error(fmt.Sprintf("Failed to translate content: %v", err))
-		}
-		// persist translations
-		if err := s.postRepo.Update(post); err != nil {
-			// log but don't fail creation
-			s.logger.Error(fmt.Sprintf("Failed to persist translations: %v", err))
-		}
+	// Run translation in background so create path is not blocked by external API.
+	if s.shouldTranslate() {
+		s.translateAndPersistAsync(post.ID, post.Title, processedContent, true, true)
 	}
 	// Load author info
 	loadedPost, err := s.postRepo.GetByID(post.ID)
@@ -131,18 +155,15 @@ func (s *postService) UpdatePost(id uint, req model.UpdatePostRequest, authorID 
 	if req.Title != nil {
 		post.Title = *req.Title
 	}
-	var safeContent string
 	var processedContent string
 	if req.Content != nil {
-		// Process Markdown for image uploads BEFORE sanitization
+		// Process Markdown for image uploads and keep raw Markdown in storage.
 		var err error
 		processedContent, err = s.imageAdapter.ProcessMarkdownForImages(*req.Content, authorID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process images in content: %w", err)
 		}
-		p := bluemonday.UGCPolicy()
-		safeContent = p.Sanitize(processedContent)
-		post.Content = safeContent
+		post.Content = processedContent
 	}
 	if req.ThumbnailData != nil && *req.ThumbnailData != "" {
 		url, err := s.imageAdapter.UploadImage(*req.ThumbnailData, authorID)
@@ -158,28 +179,11 @@ func (s *postService) UpdatePost(id uint, req model.UpdatePostRequest, authorID 
 		return nil, fmt.Errorf("failed to update post: %w", err)
 	}
 
-	// If translation service is configured, always try to translate
-	if s.config != nil && s.config.TranslationAPIURL != "" {
-		if req.Title != nil {
-			if t, err := s.transAdapter.TranslateSingle(post.Title); err == nil {
-				post.EnTitle = t
-				s.logger.Info(fmt.Sprintf("Translated title to: %s", t))
-			} else {
-				s.logger.Error(fmt.Sprintf("Failed to translate title: %v", err))
-			}
-		}
-		if req.Content != nil {
-			if t, err := s.transAdapter.TranslateMarkdown(processedContent); err == nil {
-				post.EnContent = t
-				s.logger.Info(fmt.Sprintf("Translated content to: %s", t))
-			} else {
-				s.logger.Error(fmt.Sprintf("Failed to translate content: %v", err))
-			}
-		}
-		// Persist translations if any were updated
-		if err := s.postRepo.Update(post); err != nil {
-			s.logger.Error(fmt.Sprintf("Failed to persist translations after update: %v", err))
-		}
+	// Run translation in background so update path is not blocked by external API.
+	if s.shouldTranslate() && (req.Title != nil || req.Content != nil) {
+		titleForTranslation := post.Title
+		contentForTranslation := processedContent
+		s.translateAndPersistAsync(id, titleForTranslation, contentForTranslation, req.Title != nil, req.Content != nil)
 	}
 
 	// Replace tags if provided

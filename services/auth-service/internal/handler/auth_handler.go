@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 
@@ -20,6 +22,8 @@ type AuthHandler struct {
 	TokenManager jwt.TokenManager
 }
 
+var readRandom = rand.Read
+
 // NewAuthHandler creates a new AuthHandler.
 func NewAuthHandler(service domain.AuthService, cfg *config.AuthConfig, tokenManager jwt.TokenManager) *AuthHandler {
 	return &AuthHandler{Service: service, Config: cfg, TokenManager: tokenManager}
@@ -27,7 +31,11 @@ func NewAuthHandler(service domain.AuthService, cfg *config.AuthConfig, tokenMan
 
 // generateState generates a random state string for OAuth.
 func generateState() (string, error) {
-	return "random-state", nil // Simplified for now
+	buf := make([]byte, 32)
+	if _, err := readRandom(buf); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 // GetUser handles GET /users/:id to retrieve user info.
@@ -102,6 +110,15 @@ func (h *AuthHandler) OAuthGoogleLogin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate state"})
 		return
 	}
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Path:     "/",
+		MaxAge:   300,
+		Secure:   c.Request.TLS != nil,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	url := oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusFound, url)
@@ -109,6 +126,31 @@ func (h *AuthHandler) OAuthGoogleLogin(c *gin.Context) {
 
 // OAuthGoogleCallback handles the Google OAuth callback.
 func (h *AuthHandler) OAuthGoogleCallback(c *gin.Context) {
+	state := c.Query("state")
+	if state == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "state not provided"})
+		return
+	}
+	stateCookie, err := c.Cookie("oauth_state")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "state cookie missing"})
+		return
+	}
+	if stateCookie != state {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid oauth state"})
+		return
+	}
+	// Invalidate one-time state cookie after successful verification.
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Secure:   c.Request.TLS != nil,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	code := c.Query("code")
 	if code == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "code not provided"})

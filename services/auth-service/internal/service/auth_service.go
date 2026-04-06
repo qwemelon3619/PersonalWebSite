@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -19,6 +20,34 @@ type authService struct {
 	repo         domain.UserRepository
 	config       config.AuthConfig
 	TokenManager jwt.TokenManager // JWTService can be injected here if needed
+}
+
+type googleUser struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+var exchangeCode = func(oauthConfig *oauth2.Config, code string) (*oauth2.Token, error) {
+	return oauthConfig.Exchange(context.Background(), code)
+}
+
+var fetchGoogleUser = func(oauthConfig *oauth2.Config, token *oauth2.Token) (*googleUser, error) {
+	client := oauthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user info: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read user info: %w", err)
+	}
+	var user googleUser
+	if err := json.Unmarshal(body, &user); err != nil {
+		return nil, fmt.Errorf("failed to decode user info: %w", err)
+	}
+	return &user, nil
 }
 
 // NewAuthService creates a new AuthService with the given UserRepository.
@@ -42,25 +71,14 @@ func (s *authService) OAuthLogin(provider, code string) (*model.LoginResponse, *
 		return nil, nil, fmt.Errorf("unsupported provider: %s", provider)
 	}
 
-	token, err := oauthConfig.Exchange(context.Background(), code)
+	token, err := exchangeCode(oauthConfig, code)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to exchange code: %w", err)
 	}
 
-	client := oauthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	googleUser, err := fetchGoogleUser(oauthConfig, token)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get user info: %w", err)
-	}
-	defer resp.Body.Close()
-
-	var googleUser struct {
-		ID    string `json:"id"`
-		Email string `json:"email"`
-		Name  string `json:"name"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
-		return nil, nil, fmt.Errorf("failed to decode user info: %w", err)
+		return nil, nil, err
 	}
 
 	// Check if user exists

@@ -1,4 +1,6 @@
 .env
+.env.dev
+.env.prod
 bin/
 *.log
 .DS_Store

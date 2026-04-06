@@ -98,8 +98,8 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 		}
 
 		// inject claims
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
+		c.Set("user_id", newClaims.UserID)
+		c.Set("username", newClaims.Username)
 		c.Request.Header.Set("X-User-Id", strconv.FormatUint(uint64(newClaims.UserID), 10))
 		c.Request.Header.Set("X-Username", newClaims.Username)
 		c.Next()
