@@ -138,11 +138,12 @@
                         </div>
 
                         <!-- Toast UI Viewer containers for both languages -->
-                        <div id="viewer-en" class="article-content">{{ renderSanitizedHTML .post.EnContentHTML }}</div>
+                        <div id="viewer-en" class="article-content"></div>
                         <div id="viewer-ko" class="article-content" style="display: none;"></div>
 
-                        <!-- Store Korean raw markdown for ToastUI viewer -->
-                        <div id="markdown-data" style="display:none" data-ko="{{ .post.Content }}"></div>
+                        <!-- Store raw source for Toast UI viewers -->
+                        <textarea id="markdown-ko" style="display:none">{{ .post.Content }}</textarea>
+                        <textarea id="markdown-en" style="display:none">{{ .post.EnContent }}</textarea>
 
                         <div id="translation-notice" class="mt-3 text-muted small" style="display: none;">
                             Translated by DeepL
@@ -168,9 +169,21 @@
         const viewerKoEl = document.getElementById('viewer-ko');
         const viewerEnEl = document.getElementById('viewer-en');
         const translationNotice = document.getElementById('translation-notice');
+        const mdEnSource = document.getElementById('markdown-en');
+        const hasEnglishTranslation = mdEnSource && mdEnSource.value && mdEnSource.value.trim() !== '';
 
-        // Default to English
-        if (translationNotice) translationNotice.style.display = 'block';
+        // Default to English only if translated content exists, otherwise fallback to Korean.
+        if (!hasEnglishTranslation) {
+            btnKo.classList.add('active');
+            btnEn.classList.remove('active');
+            if (titleKo) titleKo.style.display = '';
+            if (titleEn) titleEn.style.display = 'none';
+            if (viewerKoEl) viewerKoEl.style.display = '';
+            if (viewerEnEl) viewerEnEl.style.display = 'none';
+            if (translationNotice) translationNotice.style.display = 'none';
+        } else if (translationNotice) {
+            translationNotice.style.display = 'block';
+        }
 
         btnKo.addEventListener('click', function () {
             btnKo.classList.add('active');
@@ -304,12 +317,25 @@
     // Initialize Toast UI Viewer instances using embedded markdown
     document.addEventListener('DOMContentLoaded', function () {
         try {
-            const dataEl = document.getElementById('markdown-data');
-            const mdKo = dataEl ? dataEl.dataset.ko : '';
+            const mdKoEl = document.getElementById('markdown-ko');
+            const mdEnEl = document.getElementById('markdown-en');
+            const mdKo = mdKoEl ? mdKoEl.value : '';
+            const mdEn = mdEnEl ? mdEnEl.value : '';
 
             const { Editor } = toastui;
             const { codeSyntaxHighlight } = Editor.plugin;
             const koEl = document.querySelector('#viewer-ko');
+            const enEl = document.querySelector('#viewer-en');
+
+            if (enEl) {
+                window.__viewerEn = toastui.Editor.factory({
+                    el: enEl,
+                    viewer: true,
+                    initialValue: mdEn || mdKo,
+                    plugins: [codeSyntaxHighlight],
+                    height: 'auto'
+                });
+            }
             if (koEl) {
                 window.__viewerKo = toastui.Editor.factory({
                     el: koEl,

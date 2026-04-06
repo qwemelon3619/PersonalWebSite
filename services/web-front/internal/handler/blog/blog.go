@@ -316,18 +316,17 @@ func (h *blogHandler) Article(c *gin.Context) {
 	// Keep raw markdown; rendering will be done client-side using Toast UI Viewer
 	contentStr := post.Content // Korean content (raw Markdown)
 	enContentStr := ""
-	enContentHTML := ""
 	if post.EnContent != "" {
 		// English content is stored as translated HTML.
-		enContentHTML = post.EnContent
+		enContentStr = post.EnContent
 	}
 	//Add full url to images in content if relative
 	// Use regex to find image markdown syntax ![alt](url)
 	// add base URL if url is relative
 	contentStr = ensureImageURLs(contentStr, h.cfg.ImageBaseURL)
-	if enContentHTML != "" {
-		enContentHTML = ensureImageSrcURLs(enContentHTML, h.cfg.ImageBaseURL)
-		enContentHTML = bluemonday.UGCPolicy().Sanitize(enContentHTML)
+	if enContentStr != "" {
+		enContentStr = ensureImageSrcURLs(enContentStr, h.cfg.ImageBaseURL)
+		enContentStr = bluemonday.UGCPolicy().Sanitize(enContentStr)
 	}
 
 	userIdStr, err := c.Cookie("userId")
@@ -347,8 +346,7 @@ func (h *blogHandler) Article(c *gin.Context) {
 			"Title":         post.Title,
 			"EnTitle":       post.EnTitle,
 			"Content":       contentStr,   // raw Markdown
-			"EnContent":     enContentStr, // retained for compatibility
-			"EnContentHTML": enContentHTML,
+			"EnContent":     enContentStr, // sanitized HTML (rendered via Toast UI Viewer)
 			"Thumbnail":     post.Thumbnail,
 			"AuthorID":      post.AuthorID,
 			"Author":        post.Author,
