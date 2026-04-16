@@ -74,18 +74,46 @@ func ensureImageURLs(md, base string) string {
 		if strings.HasPrefix(urlPart, "http") || strings.HasPrefix(urlPart, "data:") {
 			return m
 		}
-		// join base and urlPart without duplicate slashes
-		joined := base
-		if strings.HasSuffix(joined, "/") && strings.HasPrefix(urlPart, "/") {
-			joined = joined[:len(joined)-1] + urlPart
-		} else if !strings.HasSuffix(joined, "/") && !strings.HasPrefix(urlPart, "/") {
-			joined = joined + "/" + urlPart
-		} else {
-			joined = joined + urlPart
-		}
+		joined := joinImageBaseURL(base, urlPart)
 		// replace only the first occurrence of the urlPart to preserve title/other attrs
 		return strings.Replace(m, urlPart, joined, 1)
 	})
+}
+
+// joinImageBaseURL joins base + relative image path while avoiding duplicated base path segments.
+// Example: base ".../img" + src "/img/a.jpg" => ".../img/a.jpg" (not ".../img/img/a.jpg")
+func joinImageBaseURL(base, src string) string {
+	if src == "" || strings.HasPrefix(src, "http") || strings.HasPrefix(src, "data:") {
+		return src
+	}
+	if base == "" {
+		return src
+	}
+
+	joinPath := func(basePath, relPath string) string {
+		b := strings.TrimSuffix(basePath, "/")
+		r := relPath
+		if strings.HasPrefix(r, "/") {
+			if b != "" && (r == b || strings.HasPrefix(r, b+"/")) {
+				return r
+			}
+			if b == "" {
+				return r
+			}
+			return b + r
+		}
+		if b == "" {
+			return r
+		}
+		return b + "/" + r
+	}
+
+	if u, err := url.Parse(base); err == nil && u.Scheme != "" && u.Host != "" {
+		u.Path = joinPath(u.Path, src)
+		return u.String()
+	}
+
+	return joinPath(base, src)
 }
 
 // ensureImageSrcURLs rewrites relative img src paths in HTML to absolute paths.
@@ -103,14 +131,7 @@ func ensureImageSrcURLs(htmlStr, base string) string {
 		if strings.HasPrefix(src, "http") || strings.HasPrefix(src, "data:") {
 			return m
 		}
-		joined := base
-		if strings.HasSuffix(joined, "/") && strings.HasPrefix(src, "/") {
-			joined = joined[:len(joined)-1] + src
-		} else if !strings.HasSuffix(joined, "/") && !strings.HasPrefix(src, "/") {
-			joined = joined + "/" + src
-		} else {
-			joined = joined + src
-		}
+		joined := joinImageBaseURL(base, src)
 		return strings.Replace(m, src, joined, 1)
 	})
 }
