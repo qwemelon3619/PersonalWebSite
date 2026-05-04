@@ -1,277 +1,405 @@
 {{ template "header.html" . }}
 
 <style>
-    /* Additional styles for CV section (maintain consistent visual language) */
-    .profile-card {
+    /* Profile header */
+    .profile-header {
         background: var(--bg-card);
         border-radius: 20px;
         border: 1px solid var(--border-color);
-        overflow: hidden;
+        padding: 2.5rem;
     }
 
-    .profile-sidebar {
-        background: linear-gradient(180deg, #ffffff 0%, var(--bg-main) 100%);
-        border-right: 1px solid var(--border-color);
+    .profile-photo {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid var(--primary-orange);
     }
 
     .info-item {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 8px 0;
+        gap: 10px;
+        padding: 4px 0;
         font-size: 0.9rem;
+        color: var(--text-muted);
     }
 
     .info-item i {
         color: var(--primary-orange);
-        width: 20px;
+        width: 18px;
         text-align: center;
+        font-size: 0.85rem;
     }
 
-    /* Custom timeline styles for Experience/Education */
+    /* Section cards */
+    .section-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+        padding: 2rem 2rem 1.5rem 2rem;
+        transition: box-shadow 0.2s;
+    }
+
+    .section-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-label {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--primary-orange);
+        margin-bottom: 0.75rem;
+    }
+
+    /* Timeline */
     .cv-timeline {
         position: relative;
-        padding-left: 30px;
+        padding-left: 28px;
     }
 
     .cv-timeline::before {
         content: '';
         position: absolute;
-        left: 0;
-        top: 5px;
-        bottom: 5px;
+        left: 3px;
+        top: 4px;
+        bottom: 4px;
         width: 2px;
         background: var(--border-color);
     }
 
     .cv-timeline-item {
         position: relative;
-        margin-bottom: 25px;
+        padding-bottom: 8px;
     }
 
     .cv-timeline-item::after {
         content: '';
         position: absolute;
-        left: -34px;
+        left: -32px;
         top: 6px;
         width: 10px;
         height: 10px;
         border-radius: 50%;
         background: var(--primary-orange);
         border: 2px solid white;
+        box-shadow: 0 0 0 1px var(--border-color);
+    }
+
+    /* Skill category */
+    .skill-category {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 18px;
+        height: 100%;
+        transition: 0.2s;
+    }
+
+    .skill-category:hover {
+        border-color: var(--primary-orange);
     }
 
     .skill-tag {
+        display: inline-block;
         background: #fff;
         border: 1px solid var(--border-color);
-        padding: 5px 12px;
+        padding: 4px 11px;
         border-radius: 20px;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         font-family: 'JetBrains Mono';
         transition: 0.2s;
+        line-height: 1.5;
     }
 
     .skill-tag:hover {
         border-color: var(--primary-orange);
         color: var(--primary-orange);
     }
+
+    /* Divider */
+    .soft-divider {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 0.5rem 0 1.25rem 0;
+    }
+
+    /* Project card */
+    .project-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid var(--border-color);
+        transition: 0.2s;
+    }
+
+    .project-card:hover {
+        border-color: var(--primary-orange);
+    }
 </style>
 
 <div class="container py-5">
-    <div class="profile-card shadow-sm mb-5">
-        <div class="row g-0">
-            <div class="col-lg-4 profile-sidebar p-4 p-xl-5 text-center">
-                <img src="/assets/about/profile.jpg" class="rounded-circle mb-4 border border-4 border-white shadow-sm"
-                    style="width: 160px; height: 160px; object-fit: cover;">
-
-                <h2 class="fw-bold mb-1">Seung Pyo Lee</h2>
-                <div class="mono-text fw-bold mb-4" style="font-size: 1.1rem;">Backend Engineer</div>
-
-                <hr class="my-4 opacity-10">
-
-                <div class="text-start mx-auto" style="max-width: 240px;">
-                    <div class="info-item"><i class="bi bi-envelope"></i> lspyo11@gmail.com</div>
-                    <div class="info-item"><i class="bi bi-geo-alt"></i> Tokyo, Japan</div>
-                    <div class="info-item"><i class="bi bi-building"></i> Avanade Japan</div>
-                    <div class="info-item"><i class="bi bi-globe2"></i> seungpyo.xyz</div>
-                </div>
-
-                <div class="d-flex justify-content-center gap-3 mt-4">
-                    <a href="https://github.com/qwemelon3619" class="btn btn-outline-dark btn-sm" target="_blank"
-                        rel="noopener noreferrer"><i class="bi bi-github"></i></a>
-                    <a href="https://www.linkedin.com/in/seungpyolee/" class="btn btn-outline-primary btn-sm"
-                        target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin"></i></a>
-                    <a href="https://seungpyo.xyz" class="btn btn-outline-success btn-sm" target="_blank"
-                        rel="noopener noreferrer">
-                        <i class="bi bi-box-arrow-up-right me-1"></i>Website
-                    </a>
-                </div>
+    <!-- PROFILE HEADER -->
+    <div class="profile-header shadow-sm mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-md-auto text-center">
+                <img src="/assets/about/profile.jpg" class="profile-photo shadow-sm">
             </div>
-
-            <div class="col-lg-8 p-4 p-xl-5 bg-white">
-                <h4 class="section-title">Summary</h4>
-                <p class="lead text-muted mb-5" style="line-height: 1.8; font-size: 1.1rem;">
-                    Backend engineer with hands-on experience building and operating Go and C#-based backend systems
-                    for data-intensive APIs, external integrations, and production workflows. Strongest in API design,
-                    SQL and performance tuning, data pipelines, and operational reliability across cloud and
-                    containerized environments.
-                </p>
-
-                <h4 class="section-title">Skills</h4>
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
-                                <span class="fw-semibold mono-text me-2">Languages</span>
-                                <span class="badge bg-primary-subtle text-primary ms-auto">Go, C#, SQL, Python,
-                                    C/C++</span>
-                            </li>
-                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
-                                <span class="fw-semibold mono-text me-2">Backend</span>
-                                <span class="badge bg-info-subtle text-info ms-auto">API, ETL, Auth,
-                                    Observability</span>
-                            </li>
-                        </ul>
+            <div class="col-md">
+                <h1 class="fw-bold mb-1">Seung Pyo Lee</h1>
+                <div class="mono-text fw-bold mb-3" style="font-size: 1.05rem;">Backend Engineer &mdash; Go / C#</div>
+                <div class="row g-2">
+                    <div class="col-sm-6">
+                        <div class="info-item"><i class="bi bi-envelope"></i> lspyo11@gmail.com</div>
+                        <div class="info-item"><i class="bi bi-building"></i> Avanade Japan</div>
                     </div>
-                    <div class="col-md-6">
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
-                                <span class="fw-semibold mono-text me-2">Cloud / Infra</span>
-                                <span class="badge bg-success-subtle text-success ms-auto">Azure, Docker, Linux,
-                                    CI/CD</span>
-                            </li>
-                            <li class="list-group-item bg-transparent px-0 d-flex align-items-center">
-                                <span class="fw-semibold mono-text me-2">Databases</span>
-                                <span class="badge bg-secondary-subtle text-secondary ms-auto">PostgreSQL, MySQL,
-                                    Redis</span>
-                            </li>
-                        </ul>
+                    <div class="col-sm-6">
+                        <div class="info-item"><i class="bi bi-geo-alt"></i> Tokyo, Japan</div>
+                        <div class="info-item"><i class="bi bi-globe2"></i> seungpyo.xyz</div>
                     </div>
                 </div>
-
-                <div class="mt-2">
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="skill-tag">Gin</span>
-                        <span class="skill-tag">Python</span>
-                        <span class="skill-tag">Django</span>
-                        <span class="skill-tag">Flask</span>
-                        <span class="skill-tag">.NET</span>
-                        <span class="skill-tag">Azure</span>
-                        <span class="skill-tag">Docker</span>
-                        <span class="skill-tag">Nginx</span>
-                        <span class="skill-tag">Cloudflare</span>
-                        <span class="skill-tag">GitLab CI/CD</span>
-                        <span class="skill-tag">GitHub Actions</span>
-                        <span class="skill-tag">Linux</span>
-                    </div>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="https://github.com/qwemelon3619" class="btn btn-outline-dark btn-sm" target="_blank"
+                        rel="noopener noreferrer"><i class="bi bi-github me-1"></i> GitHub</a>
+                    <a href="https://www.linkedin.com/in/seungpyolee/" class="btn btn-outline-primary btn-sm"
+                        target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin me-1"></i> LinkedIn</a>
+                    <a href="https://seungpyo.xyz" class="btn btn-outline-success btn-sm" target="_blank"
+                        rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right me-1"></i> Website</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
-                <h4 class="section-title">Experience</h4>
-                <div class="cv-timeline">
-                    <div class="cv-timeline-item">
-                        <h5 class="fw-bold mb-0">Avanade Japan</h5>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="mono-text small">Analyst / Backend Developer</span>
-                            <span class="text-muted small">2025/04 - Present</span>
-                        </div>
-                        <ul class="small text-muted mb-4">
-                            <li>Build and maintain a C# backend integration layer on Azure Functions and Azure Web Apps
-                                for a Japanese government project, connecting frontend applications with
-                                Salesforce-backed
-                                business workflows.</li>
-                            <li>Improved overall data-processing throughput by 30% by tuning SQL queries, restructuring
-                                joins, and applying indexes based on execution-plan analysis.</li>
-                            <li>Reduced latency of a core API from 200ms to 90ms by replacing inefficient subqueries
-                                with
-                                join-based queries and adding composite indexes on high-frequency filter columns.</li>
-                            <li>Supported stable delivery of integration changes through GitLab CI/CD pipelines,
-                                automated testing, and debugging workflows in a multi-system production environment.
-                            </li>
-                        </ul>
+    <!-- SUMMARY -->
+    <div class="section-card shadow-sm mb-4">
+        <span class="section-label">Summary</span>
+        <p class="mb-0" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-dark);">
+            Backend engineer who cut API latency by 55%, improved data-processing throughput by 30%, and
+            accelerated backup processing by 75% — building and operating data-intensive platforms on
+            C#, Go, Azure, and PostgreSQL. Strong in API design, SQL performance tuning, data pipelines,
+            and operational reliability. Looking for a backend engineering role focused on data-platform
+            or distributed systems work in Go or C#.
+        </p>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="section-card shadow-sm mb-4">
+        <span class="section-label">Skills</span>
+        <div class="row g-3">
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-code-slash me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">Languages</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">Go</span>
+                        <span class="skill-tag">C#</span>
+                        <span class="skill-tag">SQL</span>
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">C/C++</span>
                     </div>
                 </div>
-
-                <h4 class="section-title mt-4">Key Projects</h4>
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold mb-1">Japan Fruit and Vegetable Data API</h5>
-                        <a href="https://github.com/qwemelon3619/Japan-Fruit-Vegetable-Data-API" target="_blank"
-                            class="text-muted"><i class="bi bi-github"></i></a>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-hdd-stack me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">Backend</span>
                     </div>
-                    <p class="small text-muted mb-0">
-                        Go-based data platform that processes 3.8M+ wholesale records from Japan's MAFF open data
-                        portal,
-                        converts Shift-JIS files to UTF-8, loads normalized dimension and fact data into PostgreSQL, and
-                        serves analytics APIs. Built as separate downloader, ingestor, API server, and cron-driven
-                        pipeline components, with `/ready`, `/metrics`, ingestion audit endpoints, dashboard pages, CSV
-                        monitoring snapshots, and test coverage including stress testing to about 110 req/s at the
-                        `p95 < 1s` boundary. </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">REST API</span>
+                        <span class="skill-tag">Data Modeling</span>
+                        <span class="skill-tag">ETL</span>
+                        <span class="skill-tag">Auth</span>
+                        <span class="skill-tag">Observability</span>
+                    </div>
                 </div>
-
-                <div class="mb-0">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold mb-1">Personal Web Blog</h5>
-                        <a href="https://github.com/qwemelon3619/PersonalWebSite" target="_blank" class="text-muted"><i
-                                class="bi bi-github"></i></a>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-box-seam me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">Frameworks</span>
                     </div>
-                    <p class="small text-muted mb-0">
-                        Go-based 5-service web platform with an SSR frontend, API gateway, auth service, post service,
-                        and image service. Includes Google OAuth login, JWT issuance and validation, refresh-token
-                        rotation, Redis-backed revocation handling, Markdown authoring, image upload, and asynchronous
-                        Korean-to-English translation, deployed across Docker Compose, Nginx, PostgreSQL, Redis,
-                        Azurite,
-                        Azure, and Oracle Cloud environments.
-                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">Gin</span>
+                        <span class="skill-tag">GORM</span>
+                        <span class="skill-tag">gRPC</span>
+                        <span class="skill-tag">Django</span>
+                        <span class="skill-tag">Flask</span>
+                        <span class="skill-tag">.NET</span>
+                        <span class="skill-tag">Azure Functions</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-cloud me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">Cloud / Infra</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">Azure (AZ-900, AZ-204, AI-900)</span>
+                        <span class="skill-tag">Docker</span>
+                        <span class="skill-tag">Linux</span>
+                        <span class="skill-tag">Nginx</span>
+                        <span class="skill-tag">Cloudflare</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-database me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">Databases</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">PostgreSQL</span>
+                        <span class="skill-tag">MySQL</span>
+                        <span class="skill-tag">Redis</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="skill-category">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-arrow-repeat me-2" style="color: var(--primary-orange);"></i>
+                        <span class="fw-bold mono-text small">CI/CD</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="skill-tag">GitLab CI/CD</span>
+                        <span class="skill-tag">GitHub Actions</span>
+                    </div>
                 </div>
             </div>
         </div>
+        <hr class="soft-divider">
+        <div class="d-flex align-items-center gap-2">
+            <span class="fw-bold mono-text small me-2">Spoken:</span>
+            <span class="skill-tag">Korean (Native)</span>
+            <span class="skill-tag">English (Fluent, TOEIC 895)</span>
+            <span class="skill-tag">Japanese (JLPT N2)</span>
+        </div>
+    </div>
 
-        <div class="col-lg-5">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm mb-4">
-                <h4 class="section-title">Education</h4>
+    <!-- EXPERIENCE -->
+    <div class="section-card shadow-sm mb-4">
+        <span class="section-label">Experience</span>
+        <div class="cv-timeline">
+            <div class="cv-timeline-item">
+                <div class="d-flex justify-content-between align-items-baseline flex-wrap">
+                    <h5 class="fw-bold mb-0">Backend Engineer</h5>
+                    <span class="mono-text small text-muted">April 2025 &mdash; Present</span>
+                </div>
+                <div class="small text-muted mb-3">Avanade Japan</div>
+
+                <div class="project-card mb-3">
+                    <p class="small fw-semibold mb-2">Government System Modernization Project (Justice Sector)</p>
+                    <ul class="small text-muted mb-0">
+                        <li>Redesigned and restored a critical data backup and processing system using AWS Step
+                            Functions for a government system modernization project (justice sector), improving
+                            backup processing speed by 75%.</li>
+                        <li>Planned and executed gradual processing of 2.8 million backlogged records without
+                            impacting production operations, coordinating closely with client stakeholders on
+                            batch logic requirements.</li>
+                        <li>Collaborated with client stakeholders to gather requirements and iteratively add/modify
+                            batch processing logic.</li>
+                    </ul>
+                </div>
+
+                <div class="project-card">
+                    <p class="small fw-semibold mb-2">Government Project (Public Sector)</p>
+                    <ul class="small text-muted mb-0">
+                        <li>Build and maintain a C# backend integration layer on Azure Functions and Azure Web Apps
+                            for a Japanese government project, integrating frontend services and Salesforce-backed
+                            workflows.</li>
+                        <li>Improved overall data-processing throughput by 30% by tuning SQL queries, restructuring
+                            joins, and applying indexes based on execution-plan analysis.</li>
+                        <li>Reduced latency of a core API from 200ms to 90ms by replacing inefficient subqueries
+                            with join-based queries and adding composite indexes on high-frequency filter columns.</li>
+                        <li>Supported stable delivery through GitLab CI/CD pipelines, automated testing, and
+                            debugging workflows for backend changes.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEY PROJECTS + EDUCATION -->
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="section-card shadow-sm h-100">
+                <span class="section-label">Key Projects</span>
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-0">University of California, Riverside</h6>
-                    <div class="text-muted small mb-1">Bachelor's Degree in Computer Science | 2020/09 - 2024/12</div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold mb-1">Japan Fruit &amp; Vegetable Data API</h5>
+                        <a href="https://github.com/qwemelon3619/Japan-Fruit-Vegetable-Data-API" target="_blank"
+                            class="text-muted flex-shrink-0 ms-2"><i class="bi bi-github"></i></a>
+                    </div>
+                    <div class="mono-text small text-muted mb-2">March 2026 &mdash; Present</div>
+                    <ul class="small text-muted mb-0">
+                        <li>Build and operate a Go-based data platform that processes 3.9M+ wholesale records from
+                            Japan's MAFF open data portal, converts Shift-JIS files to UTF-8, loads normalized dimension
+                            and fact data into PostgreSQL, and serves analytics APIs. Designed the platform as separate
+                            downloader, ingestor, API server, and cron-driven pipeline components so data ingestion stays
+                            reproducible and operational failures remain isolated and recoverable.</li>
+                        <li>Implemented more than 10 documented REST endpoints for latest prices, daily history, trends,
+                            summaries, market comparisons, rankings, and dataset coverage.</li>
+                        <li>Added production-oriented operational surfaces including <code>/ready</code>,
+                            <code>/metrics</code>, ingestion audit endpoints, dashboard pages, and CSV monitoring
+                            snapshots, with admin routes protected through Nginx and Cloudflare controls.</li>
+                        <li>Wrote unit, API integration, pipeline integration, and <code>k6</code> stress tests,
+                            measuring about 110 req/s at the <code>p95 &lt; 1s</code> boundary and setting a conservative
+                            operational ceiling of 100 req/s on a 1 CPU / 1 GB RAM deployment.</li>
+                        <li>Added gRPC endpoints as an alternative data query channel alongside REST, defining protobuf
+                            schemas and implementing the gRPC server for the platform.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold mb-1">Personal Web Blog</h5>
+                        <div class="d-flex gap-2 flex-shrink-0 ms-2">
+                            <a href="https://seungpyo.xyz" target="_blank" class="text-muted"><i
+                                    class="bi bi-box-arrow-up-right"></i></a>
+                            <a href="https://github.com/qwemelon3619/PersonalWebSite" target="_blank"
+                                class="text-muted"><i class="bi bi-github"></i></a>
+                        </div>
+                    </div>
+                    <div class="mono-text small text-muted mb-2">January 2026 &mdash; Present</div>
+                    <ul class="small text-muted mb-0">
+                        <li>Built a Go-based 5-service web platform with an SSR frontend, API gateway, auth service, post
+                            service, and image service, structured as a production-style microservice system.</li>
+                        <li>Implemented Google OAuth login, JWT issuance and validation, refresh-token rotation,
+                            Redis-backed revocation handling, and protected write flows centralized at the API gateway.</li>
+                        <li>Added post authoring features including Markdown editing, tag management, image upload, and
+                            asynchronous Korean-to-English translation to keep write latency predictable.</li>
+                        <li>Standardized local and production-like environments with Docker Compose, Nginx, PostgreSQL,
+                            Redis, and Azurite, and supported deployments across local, Azure, and Oracle Cloud
+                            environments.</li>
+                        <li>Maintained unit and integration tests across all 5 services and automated build-and-test
+                            checks through GitHub Actions.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="section-card shadow-sm h-100">
+                <span class="section-label">Education</span>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-1">University of California, Riverside</h6>
+                    <div class="mono-text small text-muted mb-1">B.S. Computer Science &middot; 2020/09 &mdash; 2024/12</div>
                     <div class="mono-text" style="font-size: 0.8rem;">Riverside, CA, USA</div>
                 </div>
                 <div>
-                    <h6 class="fw-bold mb-0">California State University, San Marcos</h6>
-                    <div class="text-muted small mb-1">Bachelor's Degree in Computer Science | 2019/02 - 2020/06</div>
+                    <h6 class="fw-bold mb-1">California State University, San Marcos</h6>
+                    <div class="mono-text small text-muted mb-1">B.S. Computer Science &middot; 2019/02 &mdash; 2020/06</div>
                     <div class="mono-text" style="font-size: 0.8rem;">Transferred to UCR in Fall 2020</div>
-                </div>
-            </div>
-
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm">
-                <h4 class="section-title">Languages</h4>
-                <div class="d-flex flex-column gap-3">
-                    <div>
-                        <div class="d-flex justify-content-between mb-1"><span>Korean</span><span
-                                class="badge bg-dark">Native</span></div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-warning" style="width: 100%;"></div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between mb-1"><span>English</span><span
-                                class="badge bg-dark">Fluent</span></div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-warning" style="width: 90%;"></div>
-                        </div>
-                        <div class="mono-text mt-1" style="font-size: 0.75rem;">TOEIC 895</div>
-                    </div>
-                    <div>
-                        <div class="d-flex justify-content-between mb-1"><span>Japanese</span><span
-                                class="badge bg-dark">JLPT N2</span></div>
-                        <div class="progress" style="height: 4px;">
-                            <div class="progress-bar bg-warning" style="width: 75%;"></div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
