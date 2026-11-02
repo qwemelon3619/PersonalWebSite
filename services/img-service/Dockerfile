@@ -3,7 +3,7 @@ FROM golang:1.25-alpine AS dev
 WORKDIR /app
 COPY . .
 WORKDIR /app/services/img-service
-RUN go install github.com/air-verse/air@latest
+RUN go install github.com/air-verse/air@v1.67.1
 EXPOSE 8083
 ENV GIN_MODE=debug
 CMD ["air", "-c", ".air.toml"]
