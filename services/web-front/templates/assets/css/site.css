@@ -627,8 +627,13 @@ a.tag:hover,
   color: var(--accent-text);
 }
 
-/* Article content (Toast UI viewer output) */
+/* Article content (Toast UI viewer output)
+   NOTE: Toast UI's own CSS loads after site.css (linked in page body) and sets
+   .toastui-editor-contents { font-size: 13px }. The descendant selectors below
+   (.article-content .toastui-editor-contents, 0-2-0) out-rank Toast UI's
+   single-class rules (0-1-0) regardless of load order. */
 .article-content,
+.article-content .toastui-editor-contents,
 .toastui-editor-contents {
   font-size: 1.125rem;
   line-height: 1.8;
@@ -644,6 +649,10 @@ a.tag:hover,
 .article-content h2,
 .article-content h3,
 .article-content h4,
+.article-content .toastui-editor-contents h1,
+.article-content .toastui-editor-contents h2,
+.article-content .toastui-editor-contents h3,
+.article-content .toastui-editor-contents h4,
 .toastui-editor-contents h1,
 .toastui-editor-contents h2,
 .toastui-editor-contents h3,
@@ -654,15 +663,20 @@ a.tag:hover,
 }
 
 .article-content h1,
+.article-content .toastui-editor-contents h1,
 .toastui-editor-contents h1 { font-size: 2.25rem; }
 .article-content h2,
+.article-content .toastui-editor-contents h2,
 .toastui-editor-contents h2 { font-size: 1.8rem; }
 .article-content h3,
+.article-content .toastui-editor-contents h3,
 .toastui-editor-contents h3 { font-size: 1.5rem; }
 .article-content h4,
+.article-content .toastui-editor-contents h4,
 .toastui-editor-contents h4 { font-size: 1.25rem; }
 
 .article-content p,
+.article-content .toastui-editor-contents p,
 .toastui-editor-contents p {
   font-size: 1.125rem;
   line-height: 1.8;
@@ -670,6 +684,7 @@ a.tag:hover,
 }
 
 .article-content a,
+.article-content .toastui-editor-contents a,
 .toastui-editor-contents a {
   text-decoration: underline;
   text-underline-offset: 0.2em;
@@ -677,13 +692,20 @@ a.tag:hover,
 }
 
 .article-content img,
+.article-content .toastui-editor-contents img,
 .toastui-editor-contents img {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
 }
 
+/* Code blocks — explicit sizes so they never inherit Toast UI's 13px base */
 .article-content pre,
+.article-content .toastui-editor-contents pre,
+.article-content .toastui-editor-contents .toastui-editor-ww-code-block pre,
 .toastui-editor-contents pre {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.65;
   background: #1e1e1e !important;
   color: #f8f8f2;
   border-radius: var(--radius-md);
@@ -693,14 +715,19 @@ a.tag:hover,
 }
 
 .article-content pre code,
+.article-content .toastui-editor-contents pre code,
+.article-content .toastui-editor-contents .toastui-editor-ww-code-block pre code,
 .toastui-editor-contents pre code {
   font-family: var(--font-mono);
-  font-size: 0.9em;
+  font-size: 1em;
+  line-height: 1.65;
   background: transparent;
   color: inherit;
 }
 
+/* Inline code — distinct from body text without being tiny */
 .article-content code:not(pre code),
+.article-content .toastui-editor-contents code:not(pre code),
 .toastui-editor-contents code:not(pre code) {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -711,6 +738,7 @@ a.tag:hover,
 }
 
 .article-content blockquote,
+.article-content .toastui-editor-contents blockquote,
 .toastui-editor-contents blockquote {
   font-size: 1.125rem;
   line-height: 1.8;
@@ -723,6 +751,8 @@ a.tag:hover,
 
 .article-content ul,
 .article-content ol,
+.article-content .toastui-editor-contents ul,
+.article-content .toastui-editor-contents ol,
 .toastui-editor-contents ul,
 .toastui-editor-contents ol {
   margin-bottom: var(--space-3);
@@ -730,6 +760,7 @@ a.tag:hover,
 }
 
 .article-content li,
+.article-content .toastui-editor-contents li,
 .toastui-editor-contents li {
   font-size: 1.125rem;
   line-height: 1.8;
@@ -737,6 +768,7 @@ a.tag:hover,
 }
 
 .article-content table,
+.article-content .toastui-editor-contents table,
 .toastui-editor-contents table {
   width: 100%;
   border-collapse: collapse;
@@ -747,6 +779,8 @@ a.tag:hover,
 
 .article-content th,
 .article-content td,
+.article-content .toastui-editor-contents th,
+.article-content .toastui-editor-contents td,
 .toastui-editor-contents th,
 .toastui-editor-contents td {
   font-size: 1.05rem;
@@ -755,6 +789,7 @@ a.tag:hover,
 }
 
 .article-content th,
+.article-content .toastui-editor-contents th,
 .toastui-editor-contents th {
   background: var(--bg-muted);
   font-weight: 600;
@@ -1127,26 +1162,43 @@ a.tag:hover,
   }
 
   .article-content,
+  .article-content .toastui-editor-contents,
   .toastui-editor-contents {
     font-size: 1rem;
     line-height: 1.7;
   }
 
   .article-content p,
+  .article-content .toastui-editor-contents p,
   .toastui-editor-contents p,
   .article-content li,
+  .article-content .toastui-editor-contents li,
   .toastui-editor-contents li,
   .article-content blockquote,
+  .article-content .toastui-editor-contents blockquote,
   .toastui-editor-contents blockquote {
     font-size: 1rem;
     line-height: 1.7;
   }
 
+  .article-content pre,
+  .article-content .toastui-editor-contents pre,
+  .toastui-editor-contents pre {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    padding: var(--space-2);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
   .article-content h1,
+  .article-content .toastui-editor-contents h1,
   .toastui-editor-contents h1 { font-size: 1.65rem; }
   .article-content h2,
+  .article-content .toastui-editor-contents h2,
   .toastui-editor-contents h2 { font-size: 1.4rem; }
   .article-content h3,
+  .article-content .toastui-editor-contents h3,
   .toastui-editor-contents h3 { font-size: 1.2rem; }
 
   .navbar-collapse {
