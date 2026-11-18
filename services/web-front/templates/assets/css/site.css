@@ -628,46 +628,62 @@ a.tag:hover,
 }
 
 /* Article content (Toast UI viewer output) */
-.article-content {
-  font-size: 1.05rem;
+.article-content,
+.toastui-editor-contents {
+  font-size: 1.125rem;
   line-height: 1.8;
   color: var(--text);
 }
 
-.article-content * {
+.article-content *,
+.toastui-editor-contents * {
   font-family: inherit;
 }
 
 .article-content h1,
 .article-content h2,
 .article-content h3,
-.article-content h4 {
+.article-content h4,
+.toastui-editor-contents h1,
+.toastui-editor-contents h2,
+.toastui-editor-contents h3,
+.toastui-editor-contents h4 {
   font-family: var(--font-display);
   margin-top: var(--space-4);
   margin-bottom: var(--space-2);
 }
 
-.article-content h1 { font-size: 2rem; }
-.article-content h2 { font-size: 1.6rem; }
-.article-content h3 { font-size: 1.35rem; }
-.article-content h4 { font-size: 1.15rem; }
+.article-content h1,
+.toastui-editor-contents h1 { font-size: 2.25rem; }
+.article-content h2,
+.toastui-editor-contents h2 { font-size: 1.8rem; }
+.article-content h3,
+.toastui-editor-contents h3 { font-size: 1.5rem; }
+.article-content h4,
+.toastui-editor-contents h4 { font-size: 1.25rem; }
 
-.article-content p {
+.article-content p,
+.toastui-editor-contents p {
+  font-size: 1.125rem;
+  line-height: 1.8;
   margin-bottom: var(--space-3);
 }
 
-.article-content a {
+.article-content a,
+.toastui-editor-contents a {
   text-decoration: underline;
   text-underline-offset: 0.2em;
   text-decoration-thickness: 1.5px;
 }
 
-.article-content img {
+.article-content img,
+.toastui-editor-contents img {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
 }
 
-.article-content pre {
+.article-content pre,
+.toastui-editor-contents pre {
   background: #1e1e1e !important;
   color: #f8f8f2;
   border-radius: var(--radius-md);
@@ -676,14 +692,16 @@ a.tag:hover,
   margin-bottom: var(--space-3);
 }
 
-.article-content pre code {
+.article-content pre code,
+.toastui-editor-contents pre code {
   font-family: var(--font-mono);
   font-size: 0.9em;
   background: transparent;
   color: inherit;
 }
 
-.article-content code:not(pre code) {
+.article-content code:not(pre code),
+.toastui-editor-contents code:not(pre code) {
   font-family: var(--font-mono);
   font-size: 0.9em;
   background: var(--bg-muted);
@@ -692,7 +710,10 @@ a.tag:hover,
   border-radius: 4px;
 }
 
-.article-content blockquote {
+.article-content blockquote,
+.toastui-editor-contents blockquote {
+  font-size: 1.125rem;
+  line-height: 1.8;
   border-left: 4px solid var(--accent);
   padding-left: var(--space-3);
   margin: var(--space-3) 0;
@@ -701,16 +722,22 @@ a.tag:hover,
 }
 
 .article-content ul,
-.article-content ol {
+.article-content ol,
+.toastui-editor-contents ul,
+.toastui-editor-contents ol {
   margin-bottom: var(--space-3);
   padding-left: var(--space-3);
 }
 
-.article-content li {
+.article-content li,
+.toastui-editor-contents li {
+  font-size: 1.125rem;
+  line-height: 1.8;
   margin-bottom: 0.35em;
 }
 
-.article-content table {
+.article-content table,
+.toastui-editor-contents table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: var(--space-3);
@@ -719,12 +746,16 @@ a.tag:hover,
 }
 
 .article-content th,
-.article-content td {
+.article-content td,
+.toastui-editor-contents th,
+.toastui-editor-contents td {
+  font-size: 1.05rem;
   border: 1px solid var(--border);
   padding: 0.65rem 0.85rem;
 }
 
-.article-content th {
+.article-content th,
+.toastui-editor-contents th {
   background: var(--bg-muted);
   font-weight: 600;
 }
@@ -835,7 +866,7 @@ a.tag:hover,
   gap: 0.65rem;
   padding: 0.25rem 0;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: #57534e;
 }
 
 .info-item i {
@@ -940,6 +971,46 @@ a.tag:hover,
   border: none;
   border-top: 1px solid var(--border);
   margin: var(--space-3) 0;
+}
+
+/* About page body text sizes */
+.about-lead {
+  font-size: 1.1rem;
+  line-height: 1.85;
+  color: var(--text);
+}
+
+.about-text {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+.about-text li {
+  margin-bottom: 0.4em;
+}
+
+/* About page metadata — high-contrast secondary text */
+.about-meta {
+  color: #57534e;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.about-project-title {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.about-icon-link {
+  color: #57534e;
+  transition: color 0.2s ease;
+}
+
+.about-icon-link:hover {
+  color: var(--accent);
 }
 
 /* -----------------------------------------------------------
@@ -1055,14 +1126,28 @@ a.tag:hover,
     padding: var(--space-3);
   }
 
-  .article-content {
+  .article-content,
+  .toastui-editor-contents {
     font-size: 1rem;
     line-height: 1.7;
   }
 
-  .article-content h1 { font-size: 1.65rem; }
-  .article-content h2 { font-size: 1.4rem; }
-  .article-content h3 { font-size: 1.2rem; }
+  .article-content p,
+  .toastui-editor-contents p,
+  .article-content li,
+  .toastui-editor-contents li,
+  .article-content blockquote,
+  .toastui-editor-contents blockquote {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .article-content h1,
+  .toastui-editor-contents h1 { font-size: 1.65rem; }
+  .article-content h2,
+  .toastui-editor-contents h2 { font-size: 1.4rem; }
+  .article-content h3,
+  .toastui-editor-contents h3 { font-size: 1.2rem; }
 
   .navbar-collapse {
     background: var(--bg-elevated);
