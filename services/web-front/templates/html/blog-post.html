@@ -1,103 +1,54 @@
 {{ template "header.html" . }}
+
 <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-<!-- TOAST UI Editor -->
-<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.css" />
-<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+
+<!-- Toast UI Editor (pinned versions) -->
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css" />
+<script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/themes/prism.min.css" />
-<link rel="stylesheet"
-    href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight.min.css" />
-<script
-    src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
+<link rel="stylesheet" href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/3.0.0/toastui-editor-plugin-code-syntax-highlight.min.css" />
+<script src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/3.0.0/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+
 <section class="container my-5">
     <form action="/blog-post" method="POST" enctype="multipart/form-data" id="blogform">
         <div class="article-wrapper">
             {{ if .articleNumber }}
             <input type="hidden" name="articleNumber" value="{{ .articleNumber }}">
             {{ end }}
+
             <div class="mb-3">
                 <label for="article-title" class="form-label">Title</label>
-                <input class="form-control form-control-lg" name="article-title" placeholder="Title"
-                    value="{{ if .post }}{{ .post.Title }}{{ end }}">
+                <input class="form-control form-control-lg" id="article-title" name="article-title" placeholder="Title" value="{{ if .post }}{{ .post.Title }}{{ end }}">
             </div>
+
             <div class="mb-3">
                 <label for="thumbnail" class="form-label">Thumbnail</label>
-                <input type="file" class="form-control" name="thumbnail" accept="image/*">
-                {{ if .post.Thumbnail }}<img src="{{ .post.Thumbnail }}" alt="Current thumbnail"
-                    style="max-width: 200px; margin-top: 10px;">{{ end }}
+                <input type="file" id="thumbnail" class="form-control" name="thumbnail" accept="image/*">
+                {{ if .post.Thumbnail }}
+                <div class="mt-3">
+                    <img src="{{ .post.Thumbnail }}" alt="Current thumbnail" class="thumbnail-preview">
+                </div>
+                {{ end }}
             </div>
+
             <div class="mb-3">
                 <label for="article-tags" class="form-label">Tags</label>
-                <input class="form-control" name="tags" placeholder="comma separated - e.g. go, web, gin"
-                    value="{{ if .post }}{{ range $i, $t := .post.Tags }}{{if $i}}, {{end}}{{ $t.Name }}{{ end }}{{ end }}">
+                <input class="form-control" id="article-tags" name="tags" placeholder="comma separated - e.g. go, web, gin" value="{{ if .post }}{{ range $i, $t := .post.Tags }}{{if $i}}, {{end}}{{ $t.Name }}{{ end }}{{ end }}">
                 <div class="form-text">Separate tags with commas.</div>
             </div>
-            <style>
-                #editor {
-                    width: 100%;
-                    min-height: 900px;
-                    font-size: 18px !important;
-                }
 
-                #editor .toastui-editor-defaultUI {
-                    border: 1px solid #ddd !important;
-                    border-radius: 4px;
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror {
-                    font-size: 18px !important;
-                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror-code {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-container .CodeMirror-lines {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-container .toastui-editor-md-preview {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-container .toastui-editor-md-preview * {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-ww-container .toastui-editor-ww-mode {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-ww-container .toastui-editor-ww-mode * {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-md-tab-container .toastui-editor-md-tab-content {
-                    font-size: 18px !important;
-                }
-
-                #editor .toastui-editor-defaultUI .toastui-editor-toolbar {
-                    font-size: 16px !important;
-                }
-
-                #editor * {
-                    font-size: inherit !important;
-                }
-            </style>
-            <div id="editor" class="article-content">
-            </div>
+            <div id="editor" class="article-content"></div>
         </div>
-        <textarea name="article-content" style='display:none'
-            id="hiddenArea">{{ if .post }}{{ .post.Content }}{{ end }}</textarea>
-        <br>
-        <div class="d-flex flex-row-reverse">
-            <button type="submit" class="btn btn-primary">{{ if .post }}Update{{ else }}Post{{ end }}</button>
+
+        <textarea name="article-content" style="display:none" id="hiddenArea">{{ if .post }}{{ .post.Content }}{{ end }}</textarea>
+
+        <div class="article-wrapper d-flex flex-row-reverse mt-4">
+            <button type="submit" class="btn btn-accent btn-lg">{{ if .post }}Update{{ else }}Post{{ end }}</button>
         </div>
     </form>
 </section>
@@ -116,6 +67,7 @@
                 previewStyle: 'tab',
                 plugins: [codeSyntaxHighlight],
             });
+
             // apply forced font size after editor initialization
             setTimeout(() => {
                 const editorElement = document.querySelector('#editor');
@@ -166,4 +118,5 @@
         }
     });
 </script>
+
 {{ template "footer.html" . }}

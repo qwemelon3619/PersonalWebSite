@@ -1,157 +1,15 @@
 {{ template "header.html" . }}
 
-<style>
-    /* Profile header */
-    .profile-header {
-        background: var(--bg-card);
-        border-radius: 20px;
-        border: 1px solid var(--border-color);
-        padding: 2.5rem;
-    }
-
-    .profile-photo {
-        width: 140px;
-        height: 140px;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 3px solid var(--primary-orange);
-    }
-
-    .info-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 4px 0;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-    }
-
-    .info-item i {
-        color: var(--primary-orange);
-        width: 18px;
-        text-align: center;
-        font-size: 0.85rem;
-    }
-
-    /* Section cards */
-    .section-card {
-        background: var(--bg-card);
-        border-radius: 16px;
-        border: 1px solid var(--border-color);
-        padding: 2rem 2rem 1.5rem 2rem;
-        transition: box-shadow 0.2s;
-    }
-
-    .section-card:hover {
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-    }
-
-    .section-label {
-        display: inline-block;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--primary-orange);
-        margin-bottom: 0.75rem;
-    }
-
-    /* Timeline */
-    .cv-timeline {
-        position: relative;
-        padding-left: 28px;
-    }
-
-    .cv-timeline::before {
-        content: '';
-        position: absolute;
-        left: 3px;
-        top: 4px;
-        bottom: 4px;
-        width: 2px;
-        background: var(--border-color);
-    }
-
-    .cv-timeline-item {
-        position: relative;
-        padding-bottom: 8px;
-    }
-
-    .cv-timeline-item::after {
-        content: '';
-        position: absolute;
-        left: -32px;
-        top: 6px;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: var(--primary-orange);
-        border: 2px solid white;
-        box-shadow: 0 0 0 1px var(--border-color);
-    }
-
-    /* Skill category */
-    .skill-category {
-        background: #fff;
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 16px 18px;
-        height: 100%;
-        transition: 0.2s;
-    }
-
-    .skill-category:hover {
-        border-color: var(--primary-orange);
-    }
-
-    .skill-tag {
-        display: inline-block;
-        background: #fff;
-        border: 1px solid var(--border-color);
-        padding: 4px 11px;
-        border-radius: 20px;
-        font-size: 0.82rem;
-        font-family: 'JetBrains Mono';
-        transition: 0.2s;
-        line-height: 1.5;
-    }
-
-    .skill-tag:hover {
-        border-color: var(--primary-orange);
-        color: var(--primary-orange);
-    }
-
-    /* Divider */
-    .soft-divider {
-        border: none;
-        border-top: 1px solid var(--border-color);
-        margin: 0.5rem 0 1.25rem 0;
-    }
-
-    /* Project card */
-    .project-card {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1.25rem 1.5rem;
-        border: 1px solid var(--border-color);
-        transition: 0.2s;
-    }
-
-    .project-card:hover {
-        border-color: var(--primary-orange);
-    }
-</style>
-
 <div class="container py-5">
     <!-- PROFILE HEADER -->
-    <div class="profile-header shadow-sm mb-4">
+    <div class="profile-header mb-4">
         <div class="row align-items-center g-4">
             <div class="col-md-auto text-center">
-                <img src="/assets/about/profile.jpg" class="profile-photo shadow-sm">
+                <img src="/assets/about/profile.jpg" class="profile-photo" alt="Seung Pyo Lee">
             </div>
             <div class="col-md">
                 <h1 class="fw-bold mb-1">Seung Pyo Lee</h1>
-                <div class="mono-text fw-bold mb-3" style="font-size: 1.05rem;">Site Reliability Engineer &mdash; Go / C#</div>
+                <div class="mono-text fw-bold mb-3 text-1_05">Site Reliability Engineer &mdash; Go / C#</div>
                 <div class="row g-2">
                     <div class="col-sm-6">
                         <div class="info-item"><i class="bi bi-envelope"></i> lspyo11@gmail.com</div>
@@ -162,24 +20,21 @@
                         <div class="info-item"><i class="bi bi-globe2"></i> seungpyo.xyz</div>
                     </div>
                 </div>
-                <div class="d-flex gap-2 mt-3">
-                    <a href="https://github.com/qwemelon3619" class="btn btn-outline-dark btn-sm" target="_blank"
-                        rel="noopener noreferrer"><i class="bi bi-github me-1"></i> GitHub</a>
-                    <a href="https://www.linkedin.com/in/seungpyolee/" class="btn btn-outline-primary btn-sm"
-                        target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin me-1"></i> LinkedIn</a>
-                    <a href="https://seungpyo.xyz" class="btn btn-outline-success btn-sm" target="_blank"
-                        rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right me-1"></i> Website</a>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <a href="https://github.com/qwemelon3619" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-github me-1"></i> GitHub</a>
+                    <a href="https://www.linkedin.com/in/seungpyolee/" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-linkedin me-1"></i> LinkedIn</a>
+                    <a href="https://seungpyo.xyz" class="btn btn-outline-dark btn-sm" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right me-1"></i> Website</a>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- SUMMARY -->
-    <div class="section-card shadow-sm mb-4">
+    <div class="section-card mb-4">
         <span class="section-label">Summary</span>
-        <p class="mb-0" style="font-size: 1.05rem; line-height: 1.8; color: var(--text-dark);">
+        <p class="mb-0 text-1_05 leading-1_8">
             Site Reliability Engineer at IFS Japan, working on L3 support for enterprise software services on a
-            24/7 rotation, with ELK and Prometheus observability on Azure — and a backend background in data-intensive platforms on Go, C#, Azure, and
+            24/7 rotation, with ELK and Prometheus observability on Azure &mdash; and a backend background in data-intensive platforms on Go, C#, Azure, and
             PostgreSQL. Earlier backend work cut API latency by 55%, improved data-processing throughput
             by 30%, and accelerated backup processing by 75%. Strong in API design, SQL performance
             tuning, data pipelines, and operational reliability.
@@ -187,13 +42,13 @@
     </div>
 
     <!-- SKILLS -->
-    <div class="section-card shadow-sm mb-4">
+    <div class="section-card mb-4">
         <span class="section-label">Skills</span>
         <div class="row g-3">
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-code-slash me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-code-slash me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Languages</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -208,7 +63,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-hdd-stack me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-hdd-stack me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Backend</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -223,7 +78,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-box-seam me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-box-seam me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Frameworks</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -240,7 +95,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-cloud me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-cloud me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Cloud / Infra</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -255,7 +110,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-graph-up me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-graph-up me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Observability</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -268,7 +123,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-database me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-database me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">Databases</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -281,7 +136,7 @@
             <div class="col-lg-4 col-md-6">
                 <div class="skill-category">
                     <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-arrow-repeat me-2" style="color: var(--primary-orange);"></i>
+                        <i class="bi bi-arrow-repeat me-2 mono-text"></i>
                         <span class="fw-bold mono-text small">CI/CD</span>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -292,7 +147,7 @@
             </div>
         </div>
         <hr class="soft-divider">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             <span class="fw-bold mono-text small me-2">Spoken:</span>
             <span class="skill-tag">Korean (Native)</span>
             <span class="skill-tag">English (Fluent, TOEIC 895)</span>
@@ -301,7 +156,7 @@
     </div>
 
     <!-- EXPERIENCE -->
-    <div class="section-card shadow-sm mb-4">
+    <div class="section-card mb-4">
         <span class="section-label">Experience</span>
         <div class="cv-timeline">
             <div class="cv-timeline-item">
@@ -376,13 +231,12 @@
     <!-- KEY PROJECTS + EDUCATION -->
     <div class="row g-4">
         <div class="col-lg-8">
-            <div class="section-card shadow-sm h-100">
+            <div class="section-card h-100">
                 <span class="section-label">Key Projects</span>
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-start">
                         <h5 class="fw-bold mb-1">Japan Fruit &amp; Vegetable Data API</h5>
-                        <a href="https://github.com/qwemelon3619/Japan-Fruit-Vegetable-Data-API" target="_blank"
-                            class="text-muted flex-shrink-0 ms-2"><i class="bi bi-github"></i></a>
+                        <a href="https://github.com/qwemelon3619/Japan-Fruit-Vegetable-Data-API" target="_blank" class="text-muted flex-shrink-0 ms-2"><i class="bi bi-github"></i></a>
                     </div>
                     <div class="mono-text small text-muted mb-2">March 2026 &mdash; Present</div>
                     <ul class="small text-muted mb-0">
@@ -408,10 +262,8 @@
                     <div class="d-flex justify-content-between align-items-start">
                         <h5 class="fw-bold mb-1">Personal Web Blog</h5>
                         <div class="d-flex gap-2 flex-shrink-0 ms-2">
-                            <a href="https://seungpyo.xyz" target="_blank" class="text-muted"><i
-                                    class="bi bi-box-arrow-up-right"></i></a>
-                            <a href="https://github.com/qwemelon3619/PersonalWebSite" target="_blank"
-                                class="text-muted"><i class="bi bi-github"></i></a>
+                            <a href="https://seungpyo.xyz" target="_blank" class="text-muted"><i class="bi bi-box-arrow-up-right"></i></a>
+                            <a href="https://github.com/qwemelon3619/PersonalWebSite" target="_blank" class="text-muted"><i class="bi bi-github"></i></a>
                         </div>
                     </div>
                     <div class="mono-text small text-muted mb-2">January 2026 &mdash; Present</div>
@@ -432,19 +284,19 @@
             </div>
         </div>
         <div class="col-lg-4">
-            <div class="section-card shadow-sm h-100">
+            <div class="section-card h-100">
                 <span class="section-label">Education</span>
                 <div class="mb-4">
                     <h6 class="fw-bold mb-1">University of California, Riverside</h6>
                     <div class="mono-text small text-muted mb-1">B.S. Computer Science &middot; 2020/09 &mdash; 2024/12</div>
-                    <div class="mono-text" style="font-size: 0.8rem;">Riverside, CA, USA</div>
+                    <div class="mono-text text-0_8">Riverside, CA, USA</div>
                     <div class="mono-text small text-muted mt-1">Leave of absence 2021/03 &mdash; 2022/09 for mandatory
                         military service</div>
                 </div>
                 <div>
                     <h6 class="fw-bold mb-1">California State University, San Marcos</h6>
                     <div class="mono-text small text-muted mb-1">B.S. Computer Science &middot; 2019/02 &mdash; 2020/06</div>
-                    <div class="mono-text" style="font-size: 0.8rem;">Transferred to UCR in Fall 2020</div>
+                    <div class="mono-text text-0_8">Transferred to UCR in Fall 2020</div>
                 </div>
             </div>
         </div>

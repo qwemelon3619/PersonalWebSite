@@ -1,48 +1,25 @@
+    </main>
+
 <!-- Footer-->
-<footer class="footer-custom mt-auto border-top border-2 py-4">
+<footer class="footer-custom">
     <div class="container px-4">
-        <div class="row align-items-center justify-content-between">
-            <div class="col-md-auto small text-dark">
-                <span class="fw-bold" id="footer-copyright"
-                    style="font-family: 'JetBrains Mono', monospace; color: var(--primary-orange);">&copy; <span
-                        id="start-year">2026</span> - <span id="current-year">2026</span> Pyo's Dev Blog</span>
+        <div class="row align-items-center justify-content-between g-3">
+            <div class="col-md-auto small">
+                <span class="fw-bold mono-text" id="footer-copyright">&copy; <span id="start-year">2026</span> &mdash; <span id="current-year">2026</span> Pyo's Dev Blog</span>
             </div>
             <div class="col-md-auto">
-                <a class="btn btn-link btn-sm text-dark px-2" href="/opensource" title="Open Source">
-                    <span class="d-none d-md-inline">Open Source</span>
+                <a class="btn btn-ghost btn-sm" href="/opensource" title="Open Source">Open Source</a>
+                <a class="btn btn-ghost btn-sm" href="mailto:lspyo11@email.com" title="Email">
+                    <i class="bi bi-envelope"></i>
                 </a>
-                <a class="btn btn-link btn-sm text-dark px-2" href="mailto:lspyo11@email.com" title="Email"><i
-                        class="bi bi-envelope"></i></a>
             </div>
         </div>
     </div>
 </footer>
-<style>
-    .footer-custom {
-        background: rgba(244, 244, 242, 0.95);
-        color: var(--text-dark);
-        font-family: 'Inter', sans-serif;
-        border-top: 1px solid var(--border-color);
-        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
-    }
 
-    .footer-custom .btn-link {
-        color: var(--primary-orange) !important;
-        font-weight: 600;
-        transition: 0.2s;
-    }
-
-    .footer-custom .btn-link:hover {
-        color: var(--primary-hover) !important;
-        text-decoration: underline;
-    }
-
-    .footer-custom .fw-bold {
-        color: var(--primary-orange);
-    }
-</style>
-<!-- Bootstrap JS (includes Popper) for interactive components like Accordion -->
+<!-- Bootstrap JS (includes Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     (function updateFooterYear() {
         try {

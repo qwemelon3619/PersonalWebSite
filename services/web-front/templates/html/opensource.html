@@ -1,169 +1,153 @@
 {{ template "header.html" . }}
 
 <div class="container py-5">
-    <div class="my-4">
-        <h4>Open Source Licenses</h4>
+    <div class="page-hero text-center">
+        <div class="mono-text mb-3">// Legal</div>
+        <h1 class="mb-3">Open Source Licenses</h1>
+        <p class="mx-auto mb-0 measure-sm">
+            This project stands on the shoulders of excellent open-source software. Below are the licenses for the key dependencies used across the stack.
+        </p>
     </div>
-    <div class="my-3">
-        <div class="accordion mx-auto" id="licensesAccordion" style="max-width:900px;">
-            <!-- Go -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-go">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-go" aria-expanded="false" aria-controls="collapse-go">
-                        Go — BSD-3-Clause license
-                    </button>
-                </h2>
-                <div id="collapse-go" class="accordion-collapse collapse" aria-labelledby="heading-go"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a href="https://go.googlesource.com/go">https://go.googlesource.com/go</a>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="accordion" id="licensesAccordion">
+                <!-- Go -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-go">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-go" aria-expanded="false" aria-controls="collapse-go">
+                            Go — BSD-3-Clause license
+                        </button>
+                    </h2>
+                    <div id="collapse-go" class="accordion-collapse collapse" aria-labelledby="heading-go" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://go.googlesource.com/go">https://go.googlesource.com/go</a></div>
+                            Copyright 2009 The Go Authors.<br>
+                            Redistribution and use in source and binary forms, with or without modification, are permitted
+                            provided that the following conditions are met:
+                            <ul>
+                                <li>Redistributions of source code must retain the above copyright notice, this list of
+                                    conditions and the following disclaimer.</li>
+                                <li>Redistributions in binary form must reproduce the above copyright notice, this list of
+                                    conditions and the following disclaimer in the documentation and/or other materials
+                                    provided with the distribution.</li>
+                                <li>Neither the name of Google LLC nor the names of its contributors may be used to endorse
+                                    or promote products derived from this software without specific prior written
+                                    permission.</li>
+                            </ul>
+                            THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+                            IMPLIED WARRANTIES ARE DISCLAIMED.
                         </div>
-                        Copyright 2009 The Go Authors.<br>
-                        Redistribution and use in source and binary forms, with or without modification, are permitted
-                        provided that the following conditions are met:
-                        <ul>
-                            <li>Redistributions of source code must retain the above copyright notice, this list of
-                                conditions and the following disclaimer.</li>
-                            <li>Redistributions in binary form must reproduce the above copyright notice, this list of
-                                conditions and the following disclaimer in the documentation and/or other materials
-                                provided with the distribution.</li>
-                            <li>Neither the name of Google LLC nor the names of its contributors may be used to endorse
-                                or promote products derived from this software without specific prior written
-                                permission.</li>
-                        </ul>
-                        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-                        IMPLIED WARRANTIES ARE DISCLAIMED.
                     </div>
                 </div>
-            </div>
 
-            <!-- Gin -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-gin">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-gin" aria-expanded="false" aria-controls="collapse-gin">
-                        Gin — MIT license
-                    </button>
-                </h2>
-                <div id="collapse-gin" class="accordion-collapse collapse" aria-labelledby="heading-gin"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a
-                                href="https://github.com/gin-gonic/gin">https://github.com/gin-gonic/gin</a></div>
-                        The MIT License (MIT). Copyright (c) 2014 Manuel Martínez-Almeida.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gorm -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-gorm">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-gorm" aria-expanded="false" aria-controls="collapse-gorm">
-                        Gorm — MIT license
-                    </button>
-                </h2>
-                <div id="collapse-gorm" class="accordion-collapse collapse" aria-labelledby="heading-gorm"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a href="https://github.com/go-gorm/gorm">https://github.com/go-gorm/gorm</a>
+                <!-- Gin -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-gin">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-gin" aria-expanded="false" aria-controls="collapse-gin">
+                            Gin — MIT license
+                        </button>
+                    </h2>
+                    <div id="collapse-gin" class="accordion-collapse collapse" aria-labelledby="heading-gin" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://github.com/gin-gonic/gin">https://github.com/gin-gonic/gin</a></div>
+                            The MIT License (MIT). Copyright (c) 2014 Manuel Martínez-Almeida.
                         </div>
-                        The MIT License (MIT). Copyright (c) 2013-present Jinzhu.
                     </div>
                 </div>
-            </div>
 
-            <!-- Bootstrap -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-bootstrap">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-bootstrap" aria-expanded="false" aria-controls="collapse-bootstrap">
-                        Bootstrap — MIT license
-                    </button>
-                </h2>
-                <div id="collapse-bootstrap" class="accordion-collapse collapse" aria-labelledby="heading-bootstrap"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a href="https://getbootstrap.com/">https://getbootstrap.com/</a></div>
-                        The MIT License (MIT). Copyright (c) The Bootstrap Authors.
-                    </div>
-                </div>
-            </div>
-
-            <!-- golang-jwt -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-jwt">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-jwt" aria-expanded="false" aria-controls="collapse-jwt">
-                        golang-jwt / jwt — MIT license
-                    </button>
-                </h2>
-                <div id="collapse-jwt" class="accordion-collapse collapse" aria-labelledby="heading-jwt"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a
-                                href="https://github.com/golang-jwt/jwt">https://github.com/golang-jwt/jwt</a></div>
-                        The MIT License (MIT). Copyright (c) golang-jwt maintainers.
-                    </div>
-                </div>
-            </div>
-
-            <!-- google/uuid -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-uuid">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-uuid" aria-expanded="false" aria-controls="collapse-uuid">
-                        google/uuid — BSD-3-Clause license
-                    </button>
-                </h2>
-                <div id="collapse-uuid" class="accordion-collapse collapse" aria-labelledby="heading-uuid"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a href="https://github.com/google/uuid">https://github.com/google/uuid</a>
+                <!-- Gorm -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-gorm">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-gorm" aria-expanded="false" aria-controls="collapse-gorm">
+                            Gorm — MIT license
+                        </button>
+                    </h2>
+                    <div id="collapse-gorm" class="accordion-collapse collapse" aria-labelledby="heading-gorm" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://github.com/go-gorm/gorm">https://github.com/go-gorm/gorm</a></div>
+                            The MIT License (MIT). Copyright (c) 2013-present Jinzhu.
                         </div>
-                        BSD-3-Clause license. Copyright (c) Google Inc.
                     </div>
                 </div>
-            </div>
 
-            <!-- bcrypt -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-bcrypt">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-bcrypt" aria-expanded="false" aria-controls="collapse-bcrypt">
-                        bcrypt (golang.org/x/crypto) — BSD-3-Clause license
-                    </button>
-                </h2>
-                <div id="collapse-bcrypt" class="accordion-collapse collapse" aria-labelledby="heading-bcrypt"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a
-                                href="https://cs.opensource.google/go/x/crypto">https://cs.opensource.google/go/x/crypto</a>
+                <!-- Bootstrap -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-bootstrap">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-bootstrap" aria-expanded="false" aria-controls="collapse-bootstrap">
+                            Bootstrap — MIT license
+                        </button>
+                    </h2>
+                    <div id="collapse-bootstrap" class="accordion-collapse collapse" aria-labelledby="heading-bootstrap" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://getbootstrap.com/">https://getbootstrap.com/</a></div>
+                            The MIT License (MIT). Copyright (c) The Bootstrap Authors.
                         </div>
-                        BSD-3-Clause license.
                     </div>
                 </div>
-            </div>
 
-            <!-- joho/godotenv -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="heading-godotenv">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapse-godotenv" aria-expanded="false" aria-controls="collapse-godotenv">
-                        joho/godotenv — MIT license
-                    </button>
-                </h2>
-                <div id="collapse-godotenv" class="accordion-collapse collapse" aria-labelledby="heading-godotenv"
-                    data-bs-parent="#licensesAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2"><a
-                                href="https://github.com/joho/godotenv">https://github.com/joho/godotenv</a></div>
-                        The MIT License (MIT).
+                <!-- golang-jwt -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-jwt">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-jwt" aria-expanded="false" aria-controls="collapse-jwt">
+                            golang-jwt / jwt — MIT license
+                        </button>
+                    </h2>
+                    <div id="collapse-jwt" class="accordion-collapse collapse" aria-labelledby="heading-jwt" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://github.com/golang-jwt/jwt">https://github.com/golang-jwt/jwt</a></div>
+                            The MIT License (MIT). Copyright (c) golang-jwt maintainers.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- google/uuid -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-uuid">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-uuid" aria-expanded="false" aria-controls="collapse-uuid">
+                            google/uuid — BSD-3-Clause license
+                        </button>
+                    </h2>
+                    <div id="collapse-uuid" class="accordion-collapse collapse" aria-labelledby="heading-uuid" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://github.com/google/uuid">https://github.com/google/uuid</a></div>
+                            BSD-3-Clause license. Copyright (c) Google Inc.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- bcrypt -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-bcrypt">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-bcrypt" aria-expanded="false" aria-controls="collapse-bcrypt">
+                            bcrypt (golang.org/x/crypto) — BSD-3-Clause license
+                        </button>
+                    </h2>
+                    <div id="collapse-bcrypt" class="accordion-collapse collapse" aria-labelledby="heading-bcrypt" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://cs.opensource.google/go/x/crypto">https://cs.opensource.google/go/x/crypto</a></div>
+                            BSD-3-Clause license.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- joho/godotenv -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-godotenv">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-godotenv" aria-expanded="false" aria-controls="collapse-godotenv">
+                            joho/godotenv — MIT license
+                        </button>
+                    </h2>
+                    <div id="collapse-godotenv" class="accordion-collapse collapse" aria-labelledby="heading-godotenv" data-bs-parent="#licensesAccordion">
+                        <div class="accordion-body">
+                            <div class="mb-2"><a href="https://github.com/joho/godotenv">https://github.com/joho/godotenv</a></div>
+                            The MIT License (MIT).
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 {{ template "footer.html" . }}

@@ -1,65 +1,15 @@
 {{ template "header.html" .}}
-<!-- Toast UI Viewer + Syntax Highlighting + KaTeX -->
-<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.css" />
-<link rel="stylesheet"
-    href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight.min.css" />
+
+<!-- Toast UI Viewer + Syntax Highlighting + KaTeX (pinned versions) -->
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css" />
+<link rel="stylesheet" href="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/3.0.0/toastui-editor-plugin-code-syntax-highlight.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
 
-<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
-<script
-    src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/latest/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
+<script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
+<script src="https://uicdn.toast.com/editor-plugin-code-syntax-highlight/3.0.0/toastui-editor-plugin-code-syntax-highlight-all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-
-<style>
-    /* Responsive images in article content */
-    .article-content img {
-        max-width: 100%;
-        height: auto;
-    }
-</style>
-
-<style>
-    /* Match editor preview typography and spacing */
-    .article-content {
-        font-size: 18px;
-        line-height: 1.7;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-        color: #222;
-    }
-
-    .article-content * {
-        font-size: inherit !important;
-        font-family: inherit !important;
-    }
-
-    /* Code block styling consistent with editor preview */
-    .article-content pre {
-        background-color: #e6f3ff !important;
-        padding: 1rem;
-        border-radius: 6px;
-        overflow: auto;
-    }
-
-    .article-content pre code,
-    .article-content code {
-        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
-        font-size: 0.95em;
-    }
-
-    /* Make tables responsive and readable */
-    .article-content table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .article-content th,
-    .article-content td {
-        border: 1px solid #e9ecef;
-        padding: 0.5rem;
-    }
-</style>
 
 <script>
     // Initialize syntax highlighting
@@ -82,58 +32,67 @@
         });
     });
 </script>
-<!-- Page Content-->
+
+<!-- Page Content -->
 <section class="py-5">
-    <div class="container px-5 my-5">
+    <div class="container px-4 my-5">
         <div class="row">
             <!-- Main Content -->
             <div class="col-lg-9">
                 <div class="article-wrapper">
                     <article>
                         <div class="mb-3">
-                            <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">← Back</a>
+                            <a href="javascript:history.back()" class="btn btn-ghost btn-sm">
+                                <span class="me-1">&larr;</span> Back
+                            </a>
                         </div>
-                        <header class="mb-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="text-muted small">By {{ .post.Author.Username }}</div>
+
+                        <header class="article-hero">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div class="article-meta mb-0">
+                                    <span>By {{ .post.Author.Username }}</span>
+                                    <span>&bull;</span>
+                                    <span>{{ .post.UpdatedAt.Format "Jan 02, 2006" }}</span>
+                                </div>
                                 {{ if and .isLoggedIn (eq .userId .post.Author.ID) }}
                                 <div>
-                                    <a class="btn btn-orange btn-sm me-2" href="/blog-edit/{{ .post.ID }}" role="button"
-                                        value="Edit">Edit</a>
-                                    <a class="btn btn-orange btn-sm" href="/blog-remove/{{ .post.ID }}" role="button"
-                                        value="Remove">Remove</a>
+                                    <a class="btn btn-accent btn-sm me-2" href="/blog-edit/{{ .post.ID }}" role="button">Edit</a>
+                                    <a class="btn btn-outline-dark btn-sm" href="/blog-remove/{{ .post.ID }}" role="button">Remove</a>
                                 </div>
                                 {{ end }}
                             </div>
+
                             <h1 class="fw-bolder mb-1">
                                 <span id="title-ko" style="display:none">{{.post.Title}}</span>
-                                <span id="title-en">{{if
-                                    .post.EnTitle}}{{.post.EnTitle}}{{else}}{{.post.Title}}{{end}}</span>
+                                <span id="title-en">{{if .post.EnTitle}}{{.post.EnTitle}}{{else}}{{.post.Title}}{{end}}</span>
                             </h1>
-                            <div class="text-muted fst-italic mb-2">
+
+                            <div class="article-meta">
                                 <span>Created: {{ .post.CreatedAt.Format "January 2, 2006" }}</span>
-                                <span class="mx-2">•</span>
+                                <span>&bull;</span>
                                 <span>Updated: {{ .post.UpdatedAt.Format "January 2, 2006" }}</span>
                             </div>
+
                             {{ if .post.Tags }}
-                            <div class="mb-3">
+                            <div class="mb-2">
                                 {{ range $i, $t := .post.Tags }}
-                                <a href="/blog?tag={{ $t.Name }}"
-                                    class="badge bg-secondary text-decoration-none me-1">{{ $t.Name }}</a>
+                                <a href="/blog?tag={{ $t.Name }}" class="tag me-1 mb-1">{{ $t.Name }}</a>
                                 {{ end }}
                             </div>
                             {{ end }}
-                            {{ if .post.Thumbnail }}
-                            <img src="{{ .post.Thumbnail }}" alt="Thumbnail" class="img-fluid mb-3"
-                                style="max-width: 100%; height: auto;">
-                            {{ end }}
 
+                            {{ if .post.Thumbnail }}
+                            <div class="article-thumb">
+                                <img src="{{ .post.Thumbnail }}" alt="Thumbnail">
+                            </div>
+                            {{ end }}
                         </header>
+
                         <!-- Language toggle -->
-                        <div class="mb-3">
-                            <div class="btn-group" role="group" aria-label="Language toggle">
-                                <button id="lang-en" class="btn btn-outline-secondary btn-sm active">English</button>
-                                <button id="lang-ko" class="btn btn-outline-secondary btn-sm">Korean</button>
+                        <div class="mb-4">
+                            <div class="btn-group lang-toggle" role="group" aria-label="Language toggle">
+                                <button id="lang-en" class="btn btn-outline-dark active">English</button>
+                                <button id="lang-ko" class="btn btn-outline-dark">Korean</button>
                             </div>
                         </div>
 
@@ -145,12 +104,13 @@
                         <textarea id="markdown-ko" style="display:none">{{ .post.Content }}</textarea>
                         <textarea id="markdown-en" style="display:none">{{ .post.EnContent }}</textarea>
 
-                        <div id="translation-notice" class="mt-3 text-muted small" style="display: none;">
+                        <div id="translation-notice" class="mt-4 text-muted small" style="display: none;">
                             Translated by DeepL
                         </div>
                     </article>
                 </div>
             </div>
+
             <!-- Navigation Sidebar (Right) -->
             <nav class="col-lg-3 d-none d-lg-block ps-4">
                 <div id="article-toc" class="position-sticky" style="top: 100px;"></div>
@@ -158,7 +118,9 @@
         </div>
     </div>
 </section>
+
 <script src="/templates/js/scripts.js"></script>
+
 <script>
     // Language toggle functionality
     document.addEventListener('DOMContentLoaded', function () {
@@ -222,12 +184,13 @@
         });
     });
 </script>
+
 <script>
     // Build a floating table-of-contents from H2 headers inside the visible article content
     function slugify(text) {
         return text.toString().toLowerCase()
             .replace(/\s+/g, '-')           // Replace spaces with -
-            .replace(/[^\u0000-\u7F\w\-]+/g, '') // Remove non-ascii/word chars
+            .replace(/[^\u0000-\u007F\w\-]+/g, '') // Remove non-ascii/word chars
             .replace(/--+/g, '-')             // Replace multiple - with single -
             .replace(/^-+/, '')               // Trim - from start
             .replace(/-+$/, '');              // Trim - from end
@@ -248,9 +211,9 @@
         if (!headers || headers.length === 0) return;
 
         const box = document.createElement('div');
-        box.className = 'toc-box p-3 bg-light border rounded';
+        box.className = 'toc-box';
         const title = document.createElement('div');
-        title.className = 'fw-bold mb-2';
+        title.className = 'toc-title';
         title.textContent = 'On This Page';
         box.appendChild(title);
 
@@ -266,7 +229,7 @@
             const li = document.createElement('li');
             const a = document.createElement('a');
             a.href = '#' + h.id;
-            a.className = 'toc-link d-block text-decoration-none py-1';
+            a.className = 'toc-link d-block text-decoration-none';
             a.textContent = h.textContent;
             a.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -303,16 +266,8 @@
         // initial highlight
         onScroll();
     }
-
-    // TOC styling
-    const style = document.createElement('style');
-    style.textContent = `
-    #article-toc .toc-box{ max-height: 60vh; overflow:auto; }
-    #article-toc .toc-link{ color: #333; }
-    #article-toc .toc-link.active{ font-weight: 600; color: #0d6efd; }
-`;
-    document.head.appendChild(style);
 </script>
+
 <script>
     // Initialize Toast UI Viewer instances using embedded markdown
     document.addEventListener('DOMContentLoaded', function () {
@@ -372,6 +327,4 @@
         }
     });
 </script>
-</main>
-
 {{ template "footer.html" .}}

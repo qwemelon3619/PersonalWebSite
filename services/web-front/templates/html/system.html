@@ -1,11 +1,11 @@
 {{ template "header.html" . }}
 
 <div class="container py-5">
-    <div class="row align-items-center py-4 g-4">
+    <div class="page-hero row align-items-center g-4">
         <div class="col-lg-8">
             <div class="mono-text mb-3">// System Design</div>
-            <h1 class="display-5 fw-bold mb-3">How this site is built</h1>
-            <p class="text-muted mb-0" style="max-width: 760px;">
+            <h1 class="mb-3">How this site is built</h1>
+            <p class="mb-0 measure-lg">
                 This page explains the architecture and engineering decisions behind the blog platform:
                 request routing, auth enforcement, image handling, asynchronous translation, and deployment shape.
             </p>
@@ -15,9 +15,9 @@
         </div>
     </div>
 
-    <div class="card-custom p-4 p-xl-5 border-0 shadow-sm mb-4">
+    <div class="card-custom p-4 p-xl-5 mb-4">
         <h4 class="section-title">Runtime Architecture</h4>
-        <div class="bg-white border rounded-4 p-3 p-lg-4 mb-4 overflow-auto">
+        <div class="diagram-container mb-4">
             <pre class="mermaid mb-0" style="min-width: 720px;">
 flowchart LR
     U[User Browser]
@@ -52,16 +52,16 @@ flowchart LR
         </div>
         <div class="row g-3">
             <div class="col-md-4">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">Entry</div>
-                    <h6 class="fw-bold">Browser -> Nginx</h6>
+                    <h6 class="fw-bold">Browser &rarr; Nginx</h6>
                     <p class="small text-muted mb-0">
                         Nginx fronts the stack and splits traffic between the SSR app, API Gateway, and image path.
                     </p>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">Core</div>
                     <h6 class="fw-bold">Web / Gateway / Services</h6>
                     <p class="small text-muted mb-0">
@@ -70,7 +70,7 @@ flowchart LR
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">State</div>
                     <h6 class="fw-bold">PostgreSQL / Redis / Blob</h6>
                     <p class="small text-muted mb-0">
@@ -83,7 +83,7 @@ flowchart LR
 
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+            <div class="card-custom p-4 p-xl-5 h-100">
                 <h4 class="section-title">Auth and Token Flow</h4>
                 <ol class="text-muted mb-0 ps-3">
                     <li class="mb-2">The login flow starts from `web-front` and redirects through Google OAuth.</li>
@@ -95,7 +95,7 @@ flowchart LR
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+            <div class="card-custom p-4 p-xl-5 h-100">
                 <h4 class="section-title">Post and Image Flow</h4>
                 <ol class="text-muted mb-0 ps-3">
                     <li class="mb-2">Authors submit markdown content and optional thumbnail data from the web UI.</li>
@@ -110,7 +110,7 @@ flowchart LR
 
     <div class="row g-4 mb-4">
         <div class="col-lg-6">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+            <div class="card-custom p-4 p-xl-5 h-100">
                 <h4 class="section-title">Translation Pipeline</h4>
                 <ol class="text-muted mb-0 ps-3">
                     <li class="mb-2">Korean source content is stored as the canonical write result.</li>
@@ -121,7 +121,7 @@ flowchart LR
             </div>
         </div>
         <div class="col-lg-6">
-            <div class="card-custom p-4 p-xl-5 border-0 shadow-sm h-100">
+            <div class="card-custom p-4 p-xl-5 h-100">
                 <h4 class="section-title">Deployment Topology</h4>
                 <ol class="text-muted mb-0 ps-3">
                     <li class="mb-2">Docker Compose provides a full local stack with PostgreSQL, Redis, Azurite, Nginx, and all Go services.</li>
@@ -133,32 +133,32 @@ flowchart LR
         </div>
     </div>
 
-    <div class="card-custom p-4 p-xl-5 border-0 shadow-sm">
+    <div class="card-custom p-4 p-xl-5">
         <h4 class="section-title">Why This Structure Matters</h4>
         <div class="row g-4">
             <div class="col-md-3">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">01</div>
                     <h6 class="fw-bold">Single auth boundary</h6>
                     <p class="small text-muted mb-0">Gateway-centered enforcement keeps protected write behavior consistent.</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">02</div>
                     <h6 class="fw-bold">Short write path</h6>
                     <p class="small text-muted mb-0">Async translation prevents external APIs from slowing author actions.</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">03</div>
                     <h6 class="fw-bold">Isolated media handling</h6>
                     <p class="small text-muted mb-0">Image storage is decoupled from post domain logic and database concerns.</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="border rounded-3 p-3 bg-white h-100">
+                <div class="card-soft p-3 h-100">
                     <div class="mono-text mb-2">04</div>
                     <h6 class="fw-bold">Operational realism</h6>
                     <p class="small text-muted mb-0">Compose, CI, externalized state, and health checks make the project portfolio-grade.</p>
@@ -174,21 +174,21 @@ flowchart LR
         startOnLoad: true,
         theme: 'base',
         themeVariables: {
-            primaryColor: '#fff4ec',
-            primaryTextColor: '#333333',
-            primaryBorderColor: '#ff9f67',
-            lineColor: '#222222',
-            tertiaryColor: '#fdf2ea',
-            secondaryColor: '#fff8f4',
-            clusterBkg: '#fff8f4',
-            clusterBorder: '#ffb48a',
-            edgeLabelBackground: '#fff4ec',
-            mainBkg: '#fff4ec',
-            nodeBorder: '#ff9f67',
-            defaultLinkColor: '#222222',
-            titleColor: '#333333',
-            textColor: '#333333',
-            fontFamily: '"Noto Sans KR", "Noto Sans JP", "Inter", sans-serif'
+            primaryColor: '#fff4f0',
+            primaryTextColor: '#1c1917',
+            primaryBorderColor: '#d66a45',
+            lineColor: '#44403c',
+            tertiaryColor: '#fafaf9',
+            secondaryColor: '#ffffff',
+            clusterBkg: '#ffffff',
+            clusterBorder: '#e7e5e4',
+            edgeLabelBackground: '#fff4f0',
+            mainBkg: '#fff4f0',
+            nodeBorder: '#d66a45',
+            defaultLinkColor: '#44403c',
+            titleColor: '#1c1917',
+            textColor: '#1c1917',
+            fontFamily: '"DM Sans", "Noto Sans KR", "Noto Sans JP", sans-serif'
         }
     });
 </script>

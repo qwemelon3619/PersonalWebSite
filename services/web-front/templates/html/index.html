@@ -1,21 +1,22 @@
 {{ template "header.html" . }}
-<section class="py-5">
+
+<section class="page-hero">
     <div class="container">
-        <div class="row justify-content-center py-5">
-            <div class="col-lg-9 col-xl-8 text-center pt-lg-5">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-9 col-xl-7">
                 <div class="mono-text mb-3">// Backend Developer in Tokyo</div>
-                <h1 class="display-3 fw-bold mb-4">SeungPyo's Dev Blog</h1>
-                <p class="fs-4 text-muted mb-4">
-                    Building scalable systems with <span class="text-dark fw-bold">Go, Gin, PostgreSQL, Redis, and Docker.</span>
+                <h1 class="mb-4">SeungPyo's Dev Blog</h1>
+                <p class="lead mb-4">
+                    Building scalable systems with <strong class="text-dark">Go, Gin, PostgreSQL, Redis, and Docker.</strong>
                 </p>
-                <p class="text-muted mb-5">
+                <p class="mb-5 mx-auto measure-md">
                     I write about backend engineering, while this site itself serves as a practical portfolio project
                     for authentication flow design, service boundaries, and production-style local infrastructure.
                 </p>
                 <div class="d-flex gap-3 flex-wrap justify-content-center align-items-center">
-                    <a href="/blog" class="btn btn-orange btn-lg px-4 text-center" style="min-width: 220px;">Explore Blog</a>
-                    <a href="/about" class="btn btn-outline-dark btn-lg px-4 text-center" style="min-width: 220px;">About Me</a>
-                    <a href="/system" class="btn btn-outline-secondary btn-lg px-4 text-center" style="min-width: 220px;">View System Design</a>
+                    <a href="/blog" class="btn btn-accent btn-lg btn-min-200">Explore Blog</a>
+                    <a href="/about" class="btn btn-outline-dark btn-lg btn-min-200">About Me</a>
+                    <a href="/system" class="btn btn-outline-dark btn-lg btn-min-200">View System Design</a>
                 </div>
             </div>
         </div>
@@ -23,46 +24,52 @@
 </section>
 
 <section class="py-5 mb-5">
-    <div class="container py-5">
+    <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-5">
             <h2 class="section-title mb-0">Latest Articles</h2>
-            <a href="/blog" class="fw-bold text-decoration-none nav-link">View all articles -></a>
+            <a href="/blog" class="fw-bold text-decoration-none">View all articles &rarr;</a>
         </div>
         <div class="row g-4">
             {{ if .posts }}
             {{ range $key, $value := .posts }}
-            <div class="col-lg-4">
-                <div class="card-custom h-100 border-0 shadow-sm d-flex flex-column">
-                    {{ if $value.Thumbnail }}
-                    <a href="/blog/{{$value.ID}}" class="d-block">
-                        <img src="{{ $value.Thumbnail }}" alt="{{ $value.Title }}" class="w-100 object-fit-cover"
-                            style="height:180px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;">
+            <div class="col-lg-4 col-md-6">
+                <article class="card-custom blog-card">
+                    <a href="/blog/{{$value.ID}}" class="card-media">
+                        {{ if $value.Thumbnail }}
+                        <img src="{{ $value.Thumbnail }}" alt="{{ $value.Title }}" loading="lazy">
+                        {{ else }}
+                        <img src="/assets/blog_img/sample.jpg" alt="{{ $value.Title }}" loading="lazy">
+                        {{ end }}
                     </a>
-                    {{ else }}
-                    <a href="/blog/{{$value.ID}}" class="d-block">
-                        <img src="/assets/blog_img/sample.jpg" alt="{{ $value.Title }}" class="w-100 object-fit-cover"
-                            style="height:180px;object-fit:cover;border-top-left-radius:16px;border-top-right-radius:16px;">
-                    </a>
-                    {{ end }}
-                    <div class="p-4 pb-2 flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="text-muted small">By {{ $value.Author.Username }}</div>
-                            <div class="text-muted small">{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</div>
+                    <div class="card-body">
+                        <div class="card-meta">
+                            <span>By {{ $value.Author.Username }}</span>
+                            <span>{{ $value.UpdatedAt.Format "Jan 02, 2006" }}</span>
                         </div>
-                        <a class="text-decoration-none text-dark" href="/blog/{{$value.ID}}">
-                            <h5 class="fw-bold mb-2 text-truncate">{{ if $value.EnTitle }}{{ $value.EnTitle }}{{ else
-                                }}{{ $value.Title }}{{ end }}</h5>
+                        <a class="text-decoration-none" href="/blog/{{$value.ID}}">
+                            <h5 class="card-title text-truncate">
+                                {{ if $value.EnTitle }}{{ $value.EnTitle }}{{ else }}{{ $value.Title }}{{ end }}
+                            </h5>
                         </a>
-                        <div class="mt-auto">
-                            <a class="btn btn-orange px-4" href="/blog/{{$value.ID}}">Read more</a>
+                        {{ if $value.Tags }}
+                        <div class="card-tags">
+                            {{ range $i, $t := $value.Tags }}
+                            <a href="/blog?tag={{ $t.Name }}" class="tag me-1 mb-1">{{ $t.Name }}</a>
+                            {{ end }}
+                        </div>
+                        {{ end }}
+                        <div class="card-actions">
+                            <a class="btn btn-accent btn-sm" href="/blog/{{$value.ID}}">Read more</a>
                         </div>
                     </div>
-                </div>
+                </article>
             </div>
             {{ end }}
             {{ else }}
-            <div class="col-12 text-center py-5 border border-secondary border-dashed rounded">
-                <p class="text-muted">No articles found.</p>
+            <div class="col-12">
+                <div class="empty-state">
+                    <p class="mb-0">No articles found.</p>
+                </div>
             </div>
             {{ end }}
         </div>
