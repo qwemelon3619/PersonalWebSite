@@ -222,6 +222,29 @@ func TestRefreshToken_SuccessAndRevokeCalled(t *testing.T) {
 	}
 }
 
+func TestRefreshToken_RevokeFail(t *testing.T) {
+	svc := newServiceForTest(&stubUserRepo{
+		getByEmailFn:      func(email string) (*domain.User, error) { return nil, nil },
+		getByIDFn:         func(id uint) (*domain.User, error) { return nil, nil },
+		getByProviderIDFn: func(provider, providerID string) (*domain.User, error) { return nil, nil },
+		createFn:          func(user *domain.User) error { return nil },
+	}, &stubTokenManager{
+		validateRefreshTokenFn: func(token string) (*jwt.Claims, error) {
+			return &jwt.Claims{UserID: 2, Username: "john"}, nil
+		},
+		generateTokenFn: func(userID uint, username string, accessTokenExp, refreshTokenExp time.Duration) (string, string, error) {
+			return "new-access", "new-refresh", nil
+		},
+		revokeTokenFn: func(token string, expiresIn time.Duration) error {
+			return errors.New("redis down")
+		},
+	})
+	_, _, err := svc.RefreshToken("old-refresh")
+	if err == nil || !strings.Contains(err.Error(), "failed to revoke") {
+		t.Fatalf("expected revoke failure to fail refresh, got %v", err)
+	}
+}
+
 func TestOAuthLogin_UnsupportedProvider(t *testing.T) {
 	svc := newServiceForTest(&stubUserRepo{
 		getByEmailFn:      func(email string) (*domain.User, error) { return nil, nil },

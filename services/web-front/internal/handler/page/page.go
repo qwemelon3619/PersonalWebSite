@@ -28,14 +28,6 @@ func NewPageHandler(cfg *config.PostConfig) PageHandler {
 }
 
 func (h *pageHandler) Index(c *gin.Context) {
-	// Handle OAuth callback
-	token := c.Query("token")
-	if token != "" {
-		c.SetCookie("access_token", token, 3600, "/", "", true, true)
-		// Redirect to clean URL
-		c.Redirect(http.StatusFound, "/")
-		return
-	}
 	isLoggedIn := false
 	if _, err := c.Cookie("access_token"); err == nil {
 		isLoggedIn = true

@@ -21,8 +21,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # --- Production image ---
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates
+RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=prod-build /app/services/auth-service/auth-service .
 EXPOSE 8081
+USER app
 ENV GIN_MODE=release
 CMD ["./auth-service"]

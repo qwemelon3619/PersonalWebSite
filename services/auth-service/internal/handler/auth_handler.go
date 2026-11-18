@@ -2,8 +2,10 @@ package handler
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -49,7 +51,8 @@ func (h *AuthHandler) GetUser(c *gin.Context) {
 	}
 	user, err := h.Service.GetUserByID(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		log.Printf("GetUser: failed to load user %d: %v", id, err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		return
 	}
 	c.JSON(http.StatusOK, user)
@@ -73,12 +76,12 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	newAccess, newRefresh, err := h.Service.RefreshToken(refreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		log.Printf("Refresh: token refresh failed: %v", err)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token"})
 		return
 	}
 	// Set new refresh token as cookie (rotation)
 	if newRefresh != "" {
-		cookieSecure := c.Request.TLS != nil
 		maxAge := int(h.Config.RefreshTokenTTL * 60)
 		http.SetCookie(c.Writer, &http.Cookie{
 			Name:     "refresh_token",
@@ -86,7 +89,7 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 			Path:     "/",
 			Domain:   "",
 			MaxAge:   maxAge,
-			Secure:   cookieSecure,
+			Secure:   true,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
@@ -136,7 +139,7 @@ func (h *AuthHandler) OAuthGoogleCallback(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "state cookie missing"})
 		return
 	}
-	if stateCookie != state {
+	if subtle.ConstantTimeCompare([]byte(stateCookie), []byte(state)) != 1 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid oauth state"})
 		return
 	}
@@ -159,7 +162,8 @@ func (h *AuthHandler) OAuthGoogleCallback(c *gin.Context) {
 
 	resp, _, err := h.Service.OAuthLogin("google", code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("OAuthGoogleCallback: login failed: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "authentication failed"})
 		return
 	}
 
@@ -179,7 +183,7 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, resp *model.LoginResponse) 
 		MaxAge:   refreshMaxAge,
 		Secure:   true,
 		HttpOnly: true,
-		SameSite: 0, // not set for local development
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	accessMaxAge := int(h.Config.AccessTokenTTL * 60)
@@ -191,7 +195,7 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, resp *model.LoginResponse) 
 		MaxAge:   accessMaxAge,
 		Secure:   true,
 		HttpOnly: true,
-		SameSite: 0, // not set for local development
+		SameSite: http.SameSiteLaxMode,
 	})
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "userId",
@@ -201,6 +205,6 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, resp *model.LoginResponse) 
 		MaxAge:   accessMaxAge,
 		Secure:   true,
 		HttpOnly: true,
-		SameSite: 0, // not set for local development
+		SameSite: http.SameSiteLaxMode,
 	})
 }

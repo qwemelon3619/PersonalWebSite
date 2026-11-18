@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: blog_user
       POSTGRES_PASSWORD: blog_password
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -22,17 +22,17 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     networks:
       - blog_network
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest
-    command: "azurite-blob --blobHost 0.0.0.0 --loose --skipApiVersionCheck"
+    command: "azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck"
     ports:
-      - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
+      - "127.0.0.1:10000:10000"
+      - "127.0.0.1:10001:10001"
+      - "127.0.0.1:10002:10002"
     volumes:
       - azurite_data:/data
     networks:
@@ -50,7 +50,7 @@ services:
       - REDIS_DB_URL=redis
       - REDIS_DB_PORT=6379
       - REDIS_DB_PASSWORD=
-      - JWT_SECRET_KEY=your-jwt-secret
+      - "JWT_SECRET_KEY=${JWT_SECRET_KEY:?set JWT_SECRET_KEY, e.g. openssl rand -base64 48}"
       - SERVER_PORT=8081
       - MYDOMAIN=http://localhost:3000
     depends_on:
@@ -118,9 +118,9 @@ services:
       - POST_SERVICE_URL=http://post-service:8082
       - IMG_SERVICE_URL=http://img-service:8083
       - SERVER_PORT=8080
-      - JWT_SECRET_KEY=your-jwt-secret
+      - "JWT_SECRET_KEY=${JWT_SECRET_KEY:?set JWT_SECRET_KEY, e.g. openssl rand -base64 48}"
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       - auth-service
       - post-service
@@ -142,7 +142,7 @@ services:
       - SERVER_PORT=3001
       - MYDOMAIN=http://localhost:3000
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3011:3001"
     depends_on:
       - api-gateway
     volumes:

@@ -18,8 +18,16 @@ func main() {
 
 	TokenManager := jwt.NewTokenManagerWithoutRedis(conf.JWTSecretKey)
 	r := gin.Default()
+	// Strip client-supplied identity headers so they cannot be spoofed upstream.
+	// Only the gateway's own middleware may set these after validating a token.
+	r.Use(func(c *gin.Context) {
+		c.Request.Header.Del("X-User-Id")
+		c.Request.Header.Del("X-Username")
+		c.Request.Header.Del("X-Refreshed")
+		c.Next()
+	})
 	// Auth Service proxy
-	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL)
+	authMw := internalmw.AuthOrRefreshMiddleware(TokenManager, conf.AuthServiceURL, conf.AccessTokenTTL, conf.RefreshTokenTTL)
 	r.POST("/v1/auth/refresh", proxyTo(conf.AuthServiceURL+"/refresh"))
 	r.GET("/v1/auth/oauth/google/login", proxyTo(conf.AuthServiceURL+"/oauth/google/login"))
 	r.GET("/v1/auth/oauth/google/callback", proxyTo(conf.AuthServiceURL+"/oauth/google/callback"))
@@ -27,9 +35,12 @@ func main() {
 	r.PUT("/v1/auth/users/:id", authMw, proxyTo(conf.AuthServiceURL+"/users/:id"))
 
 	// Post Service proxy
-	r.GET("/v1/posts", proxyTo(conf.PostServiceURL+"/posts"))
-	r.GET("/v1/posts/:id", proxyTo(conf.PostServiceURL+"/posts/:id"))
-	r.GET("/v1/tags", proxyTo(conf.PostServiceURL+"/tags"))
+	// Public GETs use optional auth so authenticated authors can see drafts while
+	// anonymous callers remain anonymous.
+	optionalAuth := internalmw.OptionalAuthMiddleware(TokenManager)
+	r.GET("/v1/posts", optionalAuth, proxyTo(conf.PostServiceURL+"/posts"))
+	r.GET("/v1/posts/:id", optionalAuth, proxyTo(conf.PostServiceURL+"/posts/:id"))
+	r.GET("/v1/tags", optionalAuth, proxyTo(conf.PostServiceURL+"/tags"))
 	// Use API-gateway specific middleware that will attempt refresh on expired tokens
 	r.POST("/v1/posts", authMw, proxyTo(conf.PostServiceURL+"/posts"))
 	r.PUT("/v1/posts/:id", authMw, proxyTo(conf.PostServiceURL+"/posts/:id"))

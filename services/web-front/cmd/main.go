@@ -9,6 +9,7 @@ import (
 	auth "seungpyo.lee/PersonalWebSite/services/web-front/internal/handler/auth"
 	blog "seungpyo.lee/PersonalWebSite/services/web-front/internal/handler/blog"
 	page "seungpyo.lee/PersonalWebSite/services/web-front/internal/handler/page"
+	"seungpyo.lee/PersonalWebSite/services/web-front/internal/middleware"
 )
 
 func mod(a, b int) int {
@@ -21,8 +22,6 @@ func main() {
 	r := gin.Default()
 	r.SetFuncMap(template.FuncMap{
 		"mod": mod,
-		// renderSanitizedHTML: explicit helper used only for server-sanitized HTML
-		"renderSanitizedHTML": func(s string) template.HTML { return template.HTML(s) },
 	})
 
 	cfg := config.LoadWebConfig()
@@ -49,16 +48,16 @@ func main() {
 	r.GET("/system", pageH.System)
 
 	r.GET("/login", authH.Login)
-	r.GET("/logout", authH.Logout)
+	r.POST("/logout", middleware.SameOriginGuard(), authH.Logout)
 	r.GET("/oauth/google", authH.OAuthGoogleLogin)
 	r.GET("/oauth/google/callback", authH.OAuthGoogleRedirect)
 	r.GET("/blog", blogH.List)
 	r.GET("/blog-post", blogH.EditOrNew)
 	r.GET("/blog-edit/:articleNumber", blogH.EditOrNew)
-	r.POST("/blog-post", postH.Save)
+	r.POST("/blog-post", middleware.SameOriginGuard(), postH.Save)
 	r.GET("/blog/:articleNumber", blogH.Article)
 	r.GET("/blog-remove/:articleNumber", blogH.RemovePage)
-	r.POST("/blog-remove/:articleNumber", blogH.Remove)
+	r.POST("/blog-remove/:articleNumber", middleware.SameOriginGuard(), blogH.Remove)
 
 	r.GET("/contact", pageH.Contact)
 	r.GET("/opensource", pageH.OpenSource)

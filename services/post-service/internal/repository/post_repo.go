@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -46,6 +47,40 @@ func (r *postRepository) GetByID(id uint) (*domain.Post, error) {
 	return &post, nil
 }
 
+// allowedOrderColumns is the allowlist of columns that may be used for
+// ORDER BY. filter.OrderBy is exported and must never be interpolated raw.
+var allowedOrderColumns = map[string]bool{
+	"created_at":   true,
+	"updated_at":   true,
+	"title":        true,
+	"published_at": true,
+}
+
+const defaultOrderBy = "created_at DESC"
+
+// sanitizeOrderBy validates a "column DIRECTION" string against the allowlist
+// and falls back to the default for anything unrecognized.
+func sanitizeOrderBy(raw string) string {
+	parts := strings.Fields(strings.TrimSpace(raw))
+	if len(parts) != 2 {
+		return defaultOrderBy
+	}
+	col := strings.ToLower(parts[0])
+	prefix := ""
+	if strings.HasPrefix(col, "posts.") {
+		prefix = "posts."
+		col = strings.TrimPrefix(col, "posts.")
+	}
+	if !allowedOrderColumns[col] {
+		return defaultOrderBy
+	}
+	dir := strings.ToUpper(parts[1])
+	if dir != "ASC" && dir != "DESC" {
+		return defaultOrderBy
+	}
+	return prefix + col + " " + dir
+}
+
 // GetAll returns all posts matching the given filter.
 func (r *postRepository) GetAll(filter model.PostFilter) ([]*domain.Post, error) {
 	var posts []*domain.Post
@@ -64,11 +99,7 @@ func (r *postRepository) GetAll(filter model.PostFilter) ([]*domain.Post, error)
 		// join tags via post_tags to filter by tag name
 		query = query.Joins("JOIN post_tags pt ON pt.post_id = posts.id").Joins("JOIN tags t ON t.id = pt.tag_id").Where("t.name = ?", *filter.Tag)
 	}
-	orderBy := "created_at DESC"
-	if filter.OrderBy != "" {
-		orderBy = filter.OrderBy
-	}
-	query = query.Order(orderBy)
+	query = query.Order(sanitizeOrderBy(filter.OrderBy))
 	if filter.Limit > 0 {
 		query = query.Limit(filter.Limit)
 	}

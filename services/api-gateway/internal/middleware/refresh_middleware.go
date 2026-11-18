@@ -19,7 +19,7 @@ var log = logger.New("debug")
 // AuthOrRefreshMiddleware validates access token; if expired, it calls auth-service /refresh
 // to obtain a new access token, sets it as a cookie, updates the request Authorization header,
 // and injects X-User-Id/X-Username into the request headers.
-func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL string, accessTokenTTLMinutes int) gin.HandlerFunc {
+func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL string, accessTokenTTLMinutes int, refreshTokenTTLMinutes int) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// prevent multiple refresh attempts for the same request
 		log.Debug("AuthOrRefreshMiddleware invoked")
@@ -62,7 +62,11 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 		body := map[string]string{"refresh_token": refreshToken}
 		bb, _ := json.Marshal(body)
 		client := &http.Client{Timeout: 3 * time.Second}
-		req, _ := http.NewRequest("POST", strings.TrimRight(authServiceURL, "/")+"/refresh", bytes.NewReader(bb))
+		req, err := http.NewRequest("POST", strings.TrimRight(authServiceURL, "/")+"/refresh", bytes.NewReader(bb))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"error": "failed to build refresh request"})
+			return
+		}
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := client.Do(req)
 		if err != nil || resp == nil {
@@ -84,8 +88,35 @@ func AuthOrRefreshMiddleware(tokenManager jwt.TokenManager, authServiceURL strin
 			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"error": "no token in refresh response"})
 			return
 		}
+		// Relay the rotated refresh token that auth-service returned as a Set-Cookie.
+		// Without this the browser keeps the now-blacklisted old token and the next
+		// refresh fails with 401.
+		for _, cookie := range resp.Cookies() {
+			if cookie.Name != "refresh_token" || cookie.Value == "" {
+				continue
+			}
+			http.SetCookie(c.Writer, &http.Cookie{
+				Name:     "refresh_token",
+				Value:    cookie.Value,
+				Path:     "/",
+				Domain:   "",
+				MaxAge:   refreshTokenTTLMinutes * 60,
+				Secure:   true,
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+		}
 		// set cookie with new access token
-		c.SetCookie("access_token", tokenVal, accessTokenTTLMinutes*60, "/", "", false, true)
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     "access_token",
+			Value:    tokenVal,
+			Path:     "/",
+			Domain:   "",
+			MaxAge:   accessTokenTTLMinutes * 60,
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 		// update request header and validate to extract claims
 		c.Request.Header.Set("Authorization", "Bearer "+tokenVal)
 		// mark request as refreshed to avoid loops

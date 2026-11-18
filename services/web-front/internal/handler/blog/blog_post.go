@@ -64,10 +64,14 @@ func (h *postHandler) Save(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to read thumbnail data"))
 			return
 		}
-		// Convert to base64
-		mimeType := file.Header.Get("Content-Type")
-		if mimeType == "" {
-			mimeType = "image/png" // default
+		// Sniff the real content type rather than trusting the client-supplied
+		// Content-Type, and only allow image types that are safe in a data: URI.
+		mimeType := http.DetectContentType(data)
+		switch mimeType {
+		case "image/png", "image/jpeg", "image/gif", "image/webp":
+		default:
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Thumbnail must be a PNG, JPEG, GIF, or WebP image"))
+			return
 		}
 		thumbnailData = fmt.Sprintf("data:%s;base64,%s", mimeType, base64.StdEncoding.EncodeToString(data))
 	}
@@ -98,6 +102,12 @@ func (h *postHandler) Save(c *gin.Context) {
 	reqBody, _ := json.Marshal(payload)
 	// Determine if this is a create or update based on hidden form field 'articleNumber'
 	articleNumber := c.PostForm("articleNumber")
+	if articleNumber != "" {
+		if _, err := strconv.ParseUint(articleNumber, 10, 64); err != nil {
+			c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post number"))
+			return
+		}
+	}
 	var method, reqURL string
 	if articleNumber == "" {
 		method = "POST"
@@ -114,7 +124,7 @@ func (h *postHandler) Save(c *gin.Context) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := gatewayClient.Do(req)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to save post"))
 		return

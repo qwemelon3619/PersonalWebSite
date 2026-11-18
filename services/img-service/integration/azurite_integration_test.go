@@ -68,7 +68,7 @@ func TestAzurite_UploadAndDeleteBlobE2E(t *testing.T) {
 	uploadPayload := model.UploadImageRequest{
 		Filename: "integration.png",
 		UserId:   "77",
-		Data:     "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("hello-e2e")),
+		Data:     "data:image/png;base64," + base64.StdEncoding.EncodeToString(append([]byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}, []byte("hello-e2e")...)),
 	}
 	b, _ := json.Marshal(uploadPayload)
 	upReq := httptest.NewRequest(http.MethodPost, "/blog-image", bytes.NewReader(b))

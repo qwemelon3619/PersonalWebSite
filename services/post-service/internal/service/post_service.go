@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"path"
+	"strings"
 
 	"seungpyo.lee/PersonalWebSite/pkg/logger"
 	"seungpyo.lee/PersonalWebSite/services/post-service/internal/adapter"
@@ -121,11 +123,16 @@ func (s *postService) CreatePost(req model.CreatePostRequest, authorID uint) (*d
 	return loadedPost, nil
 }
 
-// GetPost retrieves a post by its ID.
-func (s *postService) GetPost(id uint) (*domain.Post, error) {
+// GetPost retrieves a post by its ID. Drafts are only visible to their author;
+// callerID is nil for anonymous callers.
+func (s *postService) GetPost(id uint, callerID *uint) (*domain.Post, error) {
 	post, err := s.postRepo.GetByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get post: %w", err)
+	}
+	if !post.Published && (callerID == nil || *callerID != post.AuthorID) {
+		// Do not reveal the existence of drafts to other callers.
+		return nil, fmt.Errorf("post not found")
 	}
 	// Load tags for the post if repository supports it
 	if tags, err := s.tagRepo.GetTagsForPost(id); err == nil {
@@ -135,7 +142,12 @@ func (s *postService) GetPost(id uint) (*domain.Post, error) {
 }
 
 // GetPostsByFilter returns a list of posts matching the given filter.
-func (s *postService) GetPostsByFilter(filter model.PostFilter) ([]*domain.Post, error) {
+// Anonymous callers (callerID == nil) only ever see published posts.
+func (s *postService) GetPostsByFilter(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) {
+	if callerID == nil {
+		published := true
+		filter.Published = &published
+	}
 	posts, err := s.postRepo.GetAll(filter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get posts: %w", err)
@@ -219,16 +231,24 @@ func (s *postService) DeletePost(id, authorID uint) error {
 	}
 	// Delete thumbnail image via img-service if exists
 	if post.Thumbnail != "" {
-		if err := s.imageAdapter.DeleteImage(post.Thumbnail); err != nil {
+		if !imageBelongsToAuthor(post.Thumbnail, authorID) {
+			s.logger.Info(fmt.Sprintf("Skipping thumbnail deletion for non-owned path: %s", post.Thumbnail))
+		} else if err := s.imageAdapter.DeleteImage(post.Thumbnail); err != nil {
 			// Log error but proceed with post deletion
 			fmt.Printf("Failed to delete thumbnail via img-service: %v\n", err)
 		}
 	} else {
 		fmt.Println("No thumbnail to delete")
 	}
-	// Delete images in content via img-service if any
+	// Delete images in content via img-service if any. Only images owned by
+	// the post author may be deleted: an author must not be able to remove
+	// blobs belonging to someone else by embedding their paths in markdown.
 	imageURLs := s.imageAdapter.ExtractImageURLsFromContent(post.Content)
 	for _, url := range imageURLs {
+		if !imageBelongsToAuthor(url, authorID) {
+			s.logger.Info(fmt.Sprintf("Skipping image deletion for non-owned path: %s", url))
+			continue
+		}
 		if err := s.imageAdapter.DeleteImage(url); err != nil {
 			// Log error but proceed
 			fmt.Printf("Failed to delete content image via img-service: %v\n", err)
@@ -236,6 +256,21 @@ func (s *postService) DeletePost(id, authorID uint) error {
 	}
 
 	return nil
+}
+
+// imageBelongsToAuthor reports whether imagePath is a relative blob path under
+// this author's "/<id>/blog/img/" prefix. Absolute URLs, other users' paths and
+// traversal attempts are rejected.
+func imageBelongsToAuthor(imagePath string, authorID uint) bool {
+	if imagePath == "" ||
+		strings.Contains(imagePath, "://") ||
+		strings.Contains(imagePath, `\`) ||
+		strings.Contains(imagePath, "..") {
+		return false
+	}
+	normalized := path.Clean("/" + strings.TrimPrefix(imagePath, "/"))
+	prefix := fmt.Sprintf("/%d/blog/img/", authorID)
+	return normalized != prefix && strings.HasPrefix(normalized, prefix)
 }
 
 // ListTags returns all available tags.

@@ -13,6 +13,7 @@ import (
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/config"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/domain"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/handler"
+	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/middleware"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/repository"
 	"seungpyo.lee/PersonalWebSite/services/auth-service/internal/service"
 )
@@ -57,7 +58,7 @@ func main() {
 	})
 	r.GET("/oauth/google/login", h.OAuthGoogleLogin)
 	r.GET("/oauth/google/callback", h.OAuthGoogleCallback)
-	r.GET("/users/:id", h.GetUser)
+	r.GET("/users/:id", middleware.RequireSelf(tokenManager), h.GetUser)
 	r.POST("/refresh", h.Refresh)
 
 	if err := r.Run(":" + conf.ServerPort); err != nil {

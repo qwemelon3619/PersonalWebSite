@@ -259,3 +259,27 @@ func TestPostRepository_DeleteAndGetByAuthorID(t *testing.T) {
 
 	assertPostMock(t, mock)
 }
+
+func TestSanitizeOrderBy(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"", "created_at DESC"},
+		{"created_at DESC", "created_at DESC"},
+		{"title ASC", "title ASC"},
+		{"published_at desc", "published_at DESC"},
+		{"updated_at ASC", "updated_at ASC"},
+		{"posts.created_at DESC", "posts.created_at DESC"},
+		{"id ASC", "created_at DESC"},
+		{"created_at", "created_at DESC"},
+		{"created_at DESC; DROP TABLE posts", "created_at DESC"},
+		{"(SELECT 1) DESC", "created_at DESC"},
+		{"created_at DESC, title ASC", "created_at DESC"},
+	}
+	for _, tc := range tests {
+		if got := sanitizeOrderBy(tc.in); got != tc.want {
+			t.Fatalf("sanitizeOrderBy(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}

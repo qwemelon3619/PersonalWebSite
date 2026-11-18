@@ -33,9 +33,9 @@ func (h *authHandler) Login(c *gin.Context) {
 }
 
 func (h *authHandler) Logout(c *gin.Context) {
-	c.SetCookie("access_token", "", -1, "/", "", false, true)
+	c.SetCookie("access_token", "", -1, "/", "", true, true)
 	c.SetCookie("user", "", -1, "/", "", false, false)
-	c.SetCookie("refresh_token", "", -1, "/", "", false, true)
+	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 	c.Redirect(http.StatusFound, "/")
 }
 

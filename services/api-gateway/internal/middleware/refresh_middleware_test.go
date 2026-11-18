@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -51,7 +50,7 @@ func TestAuthOrRefreshMiddleware_ValidToken(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15, 60))
 	r.GET("/protected", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"user_id":  c.Request.Header.Get("X-User-Id"),
@@ -112,12 +111,21 @@ func TestAuthOrRefreshMiddleware_ExpiredTokenRefreshes(t *testing.T) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "refresh_token",
+			Value:    "rotated-refresh-token",
+			Path:     "/",
+			MaxAge:   3600,
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
 		_ = json.NewEncoder(w).Encode(map[string]string{"token": "refreshed-token"})
 	}))
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"user_id":       c.Request.Header.Get("X-User-Id"),
@@ -139,8 +147,24 @@ func TestAuthOrRefreshMiddleware_ExpiredTokenRefreshes(t *testing.T) {
 	if got := w.Header().Get("X-Refreshed"); got != "1" {
 		t.Fatalf("expected X-Refreshed header to be 1, got %q", got)
 	}
-	if !strings.Contains(w.Header().Get("Set-Cookie"), "access_token=") {
-		t.Fatalf("expected access_token cookie to be set, got %q", w.Header().Get("Set-Cookie"))
+	// The rotated refresh token from auth-service must be relayed to the browser.
+	var gotAccess, gotRefresh bool
+	for _, cookie := range w.Result().Cookies() {
+		switch cookie.Name {
+		case "access_token":
+			gotAccess = cookie.Value == "refreshed-token"
+			if !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode {
+				t.Fatalf("access_token cookie missing secure flags: %+v", cookie)
+			}
+		case "refresh_token":
+			gotRefresh = cookie.Value == "rotated-refresh-token"
+			if !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteLaxMode {
+				t.Fatalf("refresh_token cookie missing secure flags: %+v", cookie)
+			}
+		}
+	}
+	if !gotAccess || !gotRefresh {
+		t.Fatalf("expected rotated access and refresh cookies, got access=%v refresh=%v", gotAccess, gotRefresh)
 	}
 
 	var body map[string]string
@@ -168,7 +192,7 @@ func TestAuthOrRefreshMiddleware_MissingAuthorizationHeader(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -187,7 +211,7 @@ func TestAuthOrRefreshMiddleware_InvalidAuthorizationPrefix(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -212,7 +236,7 @@ func TestAuthOrRefreshMiddleware_EmptyBearerToken(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -234,7 +258,7 @@ func TestAuthOrRefreshMiddleware_InvalidAccessToken_NonExpired(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -254,7 +278,7 @@ func TestAuthOrRefreshMiddleware_ExpiredTokenWithoutRefreshCookie(t *testing.T) 
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -274,7 +298,7 @@ func TestAuthOrRefreshMiddleware_StopsWhenAlreadyRefreshed(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://example.com", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -295,7 +319,7 @@ func TestAuthOrRefreshMiddleware_RefreshNetworkFailure(t *testing.T) {
 	}
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:1", 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:1", 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -320,7 +344,7 @@ func TestAuthOrRefreshMiddleware_RefreshNon200(t *testing.T) {
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -346,7 +370,7 @@ func TestAuthOrRefreshMiddleware_InvalidRefreshResponseJSON(t *testing.T) {
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -371,7 +395,7 @@ func TestAuthOrRefreshMiddleware_RefreshResponseWithoutToken(t *testing.T) {
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -401,7 +425,7 @@ func TestAuthOrRefreshMiddleware_RefreshedTokenInvalid(t *testing.T) {
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
@@ -436,7 +460,7 @@ func TestAuthOrRefreshMiddleware_RefreshRequestIncludesTokenBody(t *testing.T) {
 	defer authService.Close()
 
 	r := gin.New()
-	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15))
+	r.Use(AuthOrRefreshMiddleware(tokenManager, authService.URL, 15, 60))
 	r.GET("/protected", func(c *gin.Context) { c.Status(http.StatusOK) })
 
 	req := httptest.NewRequest(http.MethodGet, "/protected", nil)

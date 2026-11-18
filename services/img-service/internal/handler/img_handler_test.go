@@ -74,6 +74,9 @@ func TestUploadBlogImageHandler_ServiceError(t *testing.T) {
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
 	}
+	if strings.Contains(w.Body.String(), "upload failed") || !strings.Contains(w.Body.String(), "failed to upload image") {
+		t.Fatalf("expected generic upload error, got %s", w.Body.String())
+	}
 }
 
 func TestUploadBlogImageHandler_Success(t *testing.T) {
@@ -143,6 +146,9 @@ func TestDeleteBlogImageHandler_ServiceError(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected 500, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "delete failed") || !strings.Contains(w.Body.String(), "failed to delete image") {
+		t.Fatalf("expected generic delete error, got %s", w.Body.String())
 	}
 }
 

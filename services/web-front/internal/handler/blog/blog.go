@@ -57,6 +57,31 @@ func NewBlogHandler(cfg *config.PostConfig) BlogHandler {
 	return &blogHandler{cfg: cfg}
 }
 
+var gatewayClient = &http.Client{Timeout: 5 * time.Second}
+
+// newGatewayGET builds a GET request to the API gateway. When the caller has an
+// access_token cookie it is forwarded as a Bearer token so the gateway can
+// expose the user's unpublished drafts; anonymous callers stay anonymous.
+func newGatewayGET(c *gin.Context, url string) (*http.Request, error) {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if token, err := c.Cookie("access_token"); err == nil && token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	return req, nil
+}
+
+// parseArticleNumber validates that a :articleNumber path param is numeric.
+func parseArticleNumber(c *gin.Context) (string, bool) {
+	n := c.Param("articleNumber")
+	if _, err := strconv.ParseUint(n, 10, 64); err != nil {
+		return "", false
+	}
+	return n, true
+}
+
 // ensureImageURLs prepends base to relative image URLs in Markdown image syntax.
 // It leaves absolute URLs (http..., data:...) untouched and preserves optional title text.
 func ensureImageURLs(md, base string) string {
@@ -272,10 +297,19 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 		})
 		return
 	}
+	if _, err := strconv.ParseUint(articleNumber, 10, 64); err != nil {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post number"))
+		return
+	}
 
 	apiGatewayURL := h.cfg.ApiGatewayURL
 
-	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
+	req, err := newGatewayGET(c, apiGatewayURL+"/v1/posts/"+articleNumber)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
+		return
+	}
+	resp, err := gatewayClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch post for editing"))
 		return
@@ -316,9 +350,18 @@ func (h *blogHandler) EditOrNew(c *gin.Context) {
 func (h *blogHandler) Article(c *gin.Context) {
 	apiGatewayURL := h.cfg.ApiGatewayURL
 
-	articleNumber := c.Param("articleNumber")
+	articleNumber, ok := parseArticleNumber(c)
+	if !ok {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post number"))
+		return
+	}
 
-	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
+	req, err := newGatewayGET(c, apiGatewayURL+"/v1/posts/"+articleNumber)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
+		return
+	}
+	resp, err := gatewayClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
@@ -363,19 +406,19 @@ func (h *blogHandler) Article(c *gin.Context) {
 	}
 	c.HTML(http.StatusOK, "blog-article.html", gin.H{
 		"post": gin.H{
-			"ID":            post.ID,
-			"Title":         post.Title,
-			"EnTitle":       post.EnTitle,
-			"Content":       contentStr,   // raw Markdown
-			"EnContent":     enContentStr, // sanitized HTML (rendered via Toast UI Viewer)
-			"Thumbnail":     post.Thumbnail,
-			"AuthorID":      post.AuthorID,
-			"Author":        post.Author,
-			"Published":     post.Published,
-			"PublishedAt":   post.PublishedAt,
-			"CreatedAt":     post.CreatedAt,
-			"UpdatedAt":     post.UpdatedAt,
-			"Tags":          post.Tags,
+			"ID":          post.ID,
+			"Title":       post.Title,
+			"EnTitle":     post.EnTitle,
+			"Content":     contentStr,   // raw Markdown
+			"EnContent":   enContentStr, // sanitized HTML (rendered via Toast UI Viewer)
+			"Thumbnail":   post.Thumbnail,
+			"AuthorID":    post.AuthorID,
+			"Author":      post.Author,
+			"Published":   post.Published,
+			"PublishedAt": post.PublishedAt,
+			"CreatedAt":   post.CreatedAt,
+			"UpdatedAt":   post.UpdatedAt,
+			"Tags":        post.Tags,
 		},
 		"userId":     userId,
 		"isLoggedIn": isLoggedIn,
@@ -394,10 +437,19 @@ func (h *blogHandler) RemovePage(c *gin.Context) {
 	if _, err := c.Cookie("access_token"); err == nil {
 		isLoggedIn = true
 	}
-	articleNumber := c.Param("articleNumber")
+	articleNumber, ok := parseArticleNumber(c)
+	if !ok {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post number"))
+		return
+	}
 	apiGatewayURL := h.cfg.ApiGatewayURL
 
-	resp, err := http.Get(apiGatewayURL + "/v1/posts/" + articleNumber)
+	req, err := newGatewayGET(c, apiGatewayURL+"/v1/posts/"+articleNumber)
+	if err != nil {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to create request"))
+		return
+	}
+	resp, err := gatewayClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to fetch posts"))
 		return
@@ -424,7 +476,11 @@ func (h *blogHandler) Remove(c *gin.Context) {
 		return
 	}
 	apiGatewayURL := h.cfg.ApiGatewayURL
-	postID := c.Param("articleNumber")
+	postID, ok := parseArticleNumber(c)
+	if !ok {
+		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Invalid post number"))
+		return
+	}
 	accessToken, err := c.Cookie("access_token")
 	if err != nil || accessToken == "" {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Need to Login"))
@@ -436,7 +492,7 @@ func (h *blogHandler) Remove(c *gin.Context) {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := gatewayClient.Do(req)
 	if err != nil {
 		c.Redirect(http.StatusFound, "/error?msg="+url.QueryEscape("Failed to delete post"))
 		return

@@ -24,7 +24,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates
+RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=prod-build /app/post-service .
 EXPOSE 8082
+USER app
 CMD ["./post-service"]

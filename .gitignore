@@ -21,9 +21,6 @@ vendor/
 *.db
 *.sqlite
 
-# Docker
-.dockerignore
-
 # IDEs
 .vscode/
 .idea/
@@ -37,9 +34,6 @@ Thumbs.db
 # Azure
 *.publish
 .azure/
-
-# git
-.github/
 
 # Build outputs and temp folders
 */main

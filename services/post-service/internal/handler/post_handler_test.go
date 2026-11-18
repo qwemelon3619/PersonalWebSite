@@ -15,8 +15,8 @@ import (
 
 type stubPostService struct {
 	createPostFn       func(req model.CreatePostRequest, authorID uint) (*domain.Post, error)
-	getPostFn          func(id uint) (*domain.Post, error)
-	getPostsByFilterFn func(filter model.PostFilter) ([]*domain.Post, error)
+	getPostFn          func(id uint, callerID *uint) (*domain.Post, error)
+	getPostsByFilterFn func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error)
 	updatePostFn       func(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error)
 	deletePostFn       func(id, authorID uint) error
 	listTagsFn         func() ([]*domain.Tag, error)
@@ -25,9 +25,11 @@ type stubPostService struct {
 func (s *stubPostService) CreatePost(req model.CreatePostRequest, authorID uint) (*domain.Post, error) {
 	return s.createPostFn(req, authorID)
 }
-func (s *stubPostService) GetPost(id uint) (*domain.Post, error) { return s.getPostFn(id) }
-func (s *stubPostService) GetPostsByFilter(filter model.PostFilter) ([]*domain.Post, error) {
-	return s.getPostsByFilterFn(filter)
+func (s *stubPostService) GetPost(id uint, callerID *uint) (*domain.Post, error) {
+	return s.getPostFn(id, callerID)
+}
+func (s *stubPostService) GetPostsByFilter(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) {
+	return s.getPostsByFilterFn(filter, callerID)
 }
 func (s *stubPostService) UpdatePost(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) {
 	return s.updatePostFn(id, req, authorID)
@@ -70,8 +72,8 @@ func TestCreatePost(t *testing.T) {
 					}
 					return &domain.Post{ID: 1, Title: req.Title}, nil
 				},
-				getPostFn:          func(id uint) (*domain.Post, error) { return nil, nil },
-				getPostsByFilterFn: func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil },
+				getPostFn:          func(id uint, callerID *uint) (*domain.Post, error) { return nil, nil },
+				getPostsByFilterFn: func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) { return nil, nil },
 				updatePostFn:       func(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
 				deletePostFn:       func(id, authorID uint) error { return nil },
 				listTagsFn:         func() ([]*domain.Tag, error) { return nil, nil },
@@ -101,15 +103,17 @@ func TestCreatePost(t *testing.T) {
 
 func TestGetPost(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	var seenCaller *uint
 	svc := &stubPostService{
 		createPostFn: func(req model.CreatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
-		getPostFn: func(id uint) (*domain.Post, error) {
+		getPostFn: func(id uint, callerID *uint) (*domain.Post, error) {
+			seenCaller = callerID
 			if id == 1 {
-				return &domain.Post{ID: 1, Title: "ok"}, nil
+				return &domain.Post{ID: 1, Title: "ok", Published: true}, nil
 			}
-			return nil, errors.New("not found")
+			return nil, errors.New("post not found")
 		},
-		getPostsByFilterFn: func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil },
+		getPostsByFilterFn: func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) { return nil, nil },
 		updatePostFn:       func(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
 		deletePostFn:       func(id, authorID uint) error { return nil },
 		listTagsFn:         func() ([]*domain.Tag, error) { return nil, nil },
@@ -141,6 +145,33 @@ func TestGetPost(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("want 200 got %d", w.Code)
 		}
+		if seenCaller != nil {
+			t.Fatalf("expected anonymous caller to pass nil caller ID")
+		}
+	}
+	{
+		req := httptest.NewRequest(http.MethodGet, "/posts/1", nil)
+		req.Header.Set("X-User-Id", "42")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200 got %d", w.Code)
+		}
+		if seenCaller == nil || *seenCaller != 42 {
+			t.Fatalf("expected caller ID forwarded, got %v", seenCaller)
+		}
+	}
+	{
+		req := httptest.NewRequest(http.MethodGet, "/posts/1", nil)
+		req.Header.Set("X-User-Id", "not-a-number")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200 got %d", w.Code)
+		}
+		if seenCaller != nil {
+			t.Fatalf("expected malformed caller ID to be treated as anonymous")
+		}
 	}
 }
 
@@ -149,8 +180,8 @@ func TestGetPostsAndTags(t *testing.T) {
 	var seenFilter model.PostFilter
 	svc := &stubPostService{
 		createPostFn: func(req model.CreatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
-		getPostFn:    func(id uint) (*domain.Post, error) { return nil, nil },
-		getPostsByFilterFn: func(filter model.PostFilter) ([]*domain.Post, error) {
+		getPostFn:    func(id uint, callerID *uint) (*domain.Post, error) { return nil, nil },
+		getPostsByFilterFn: func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) {
 			seenFilter = filter
 			return []*domain.Post{{ID: 1}}, nil
 		},
@@ -197,14 +228,46 @@ func TestGetPostsAndTags(t *testing.T) {
 	if invalidW.Code != http.StatusOK {
 		t.Fatalf("invalid query should be ignored and still return 200, got %d", invalidW.Code)
 	}
+	if seenFilter.Limit != defaultPostLimit {
+		t.Fatalf("invalid limit should fall back to %d, got %d", defaultPostLimit, seenFilter.Limit)
+	}
+
+	// Anonymous callers cannot request drafts even by asking for published=false.
+	anonDraftReq := httptest.NewRequest(http.MethodGet, "/posts?published=false", nil)
+	anonDraftW := httptest.NewRecorder()
+	r.ServeHTTP(anonDraftW, anonDraftReq)
+	if seenFilter.Published == nil || !*seenFilter.Published {
+		t.Fatalf("anonymous request must force published=true, got %v", seenFilter.Published)
+	}
+	if anonDraftW.Code != http.StatusOK {
+		t.Fatalf("want 200 got %d", anonDraftW.Code)
+	}
+
+	// Authenticated callers may request drafts, and pagination is clamped.
+	authReq := httptest.NewRequest(http.MethodGet, "/posts?published=false&limit=1000&offset=-5", nil)
+	authReq.Header.Set("X-User-Id", "9")
+	authW := httptest.NewRecorder()
+	r.ServeHTTP(authW, authReq)
+	if authW.Code != http.StatusOK {
+		t.Fatalf("want 200 got %d", authW.Code)
+	}
+	if seenFilter.Published == nil || *seenFilter.Published {
+		t.Fatalf("authenticated request should honor published=false, got %v", seenFilter.Published)
+	}
+	if seenFilter.Limit != maxPostLimit {
+		t.Fatalf("limit should clamp to %d, got %d", maxPostLimit, seenFilter.Limit)
+	}
+	if seenFilter.Offset != 0 {
+		t.Fatalf("negative offset should clamp to 0, got %d", seenFilter.Offset)
+	}
 }
 
 func TestGetPostsAndTags_ServiceError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	svc := &stubPostService{
 		createPostFn: func(req model.CreatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
-		getPostFn:    func(id uint) (*domain.Post, error) { return nil, nil },
-		getPostsByFilterFn: func(filter model.PostFilter) ([]*domain.Post, error) {
+		getPostFn:    func(id uint, callerID *uint) (*domain.Post, error) { return nil, nil },
+		getPostsByFilterFn: func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) {
 			return nil, errors.New("list fail")
 		},
 		updatePostFn: func(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
@@ -236,8 +299,8 @@ func TestUpdateAndDeletePost(t *testing.T) {
 	title := "new"
 	svc := &stubPostService{
 		createPostFn: func(req model.CreatePostRequest, authorID uint) (*domain.Post, error) { return nil, nil },
-		getPostFn:    func(id uint) (*domain.Post, error) { return nil, nil },
-		getPostsByFilterFn: func(filter model.PostFilter) ([]*domain.Post, error) {
+		getPostFn:    func(id uint, callerID *uint) (*domain.Post, error) { return nil, nil },
+		getPostsByFilterFn: func(filter model.PostFilter, callerID *uint) ([]*domain.Post, error) {
 			return nil, nil
 		},
 		updatePostFn: func(id uint, req model.UpdatePostRequest, authorID uint) (*domain.Post, error) {

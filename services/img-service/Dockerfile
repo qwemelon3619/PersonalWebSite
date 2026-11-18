@@ -22,7 +22,9 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 FROM alpine:latest AS prod
 RUN apk --no-cache add ca-certificates 
+RUN addgroup -S app && adduser -S -G app app
 WORKDIR /app
 COPY --from=prod-build /app/img-service .
 EXPOSE 8083
+USER app
 CMD ["./img-service"]

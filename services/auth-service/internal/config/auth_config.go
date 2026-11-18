@@ -6,6 +6,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"seungpyo.lee/PersonalWebSite/pkg/config"
+	"seungpyo.lee/PersonalWebSite/pkg/jwt"
 )
 
 // AuthConfig extends GlobalConfig with any auth-service specific configurations.
@@ -28,6 +29,10 @@ func LoadAuthConfig() *AuthConfig {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading from environment variables")
 	}
+	secret := getEnv("JWT_SECRET_KEY")
+	if err := jwt.ValidateSecretStrength(secret); err != nil {
+		log.Fatalf("invalid JWT_SECRET_KEY: %v", err)
+	}
 	return &AuthConfig{
 		GlobalConfig:            *config.LoadGlobalConfig(),
 		PostgreConnectionString: getEnv("POSTGRE_CONNECTION_STRING"),
@@ -36,7 +41,7 @@ func LoadAuthConfig() *AuthConfig {
 		RedisDBPassword:         getEnv("REDIS_DB_PASSWORD"),
 		RedisMaxRetries:         3,
 		RedisPoolSize:           10,
-		JWTSecretKey:            getEnv("JWT_SECRET_KEY"),
+		JWTSecretKey:            secret,
 		GoogleClientID:          getEnv("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:      getEnv("GOOGLE_CLIENT_SECRET"),
 		MYDOMAIN:                getEnv("MYDOMAIN"),

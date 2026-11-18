@@ -9,7 +9,7 @@ import (
 type User struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username"`
-	Email    string `json:"email"`
+	Email    string `json:"-"`
 }
 
 type Post struct {
@@ -57,8 +57,12 @@ type TagRepository interface {
 
 type PostService interface {
 	CreatePost(req model.CreatePostRequest, authorID uint) (*Post, error)
-	GetPost(id uint) (*Post, error)
-	GetPostsByFilter(filter model.PostFilter) ([]*Post, error)
+	// GetPost returns a post. callerID is nil for anonymous callers; drafts are
+	// only visible to their author.
+	GetPost(id uint, callerID *uint) (*Post, error)
+	// GetPostsByFilter lists posts. callerID is nil for anonymous callers, in
+	// which case only published posts are returned.
+	GetPostsByFilter(filter model.PostFilter, callerID *uint) ([]*Post, error)
 	UpdatePost(id uint, req model.UpdatePostRequest, authorID uint) (*Post, error)
 	DeletePost(id, authorID uint) error
 	ListTags() ([]*Tag, error)

@@ -162,12 +162,18 @@ Translation depends on external API configuration. In practice, local and produc
 
 ### Environment files
 
-The repository includes:
+Environment files are **not** tracked in this repository. Create your own local
+`.env.dev` / `.env.prod` (e.g. from the documented variables below) and never commit
+them — they contain secrets. The new `JWT_SECRET_KEY` requirement in
+`docker-compose.dev.yml` is fail-fast: compose refuses to start until you export a
+strong value, for example:
 
-- `.env.dev`
-- `.env.prod`
+```bash
+export JWT_SECRET_KEY="$(openssl rand -base64 48)"
+docker compose -f docker-compose.dev.yml up --build
+```
 
-Before running locally, review `.env.dev` and make sure the values are appropriate for your environment. The services expect values such as:
+The services expect values such as:
 
 - `POSTGRE_CONNECTION_STRING`
 - `JWT_SECRET_KEY`

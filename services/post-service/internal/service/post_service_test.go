@@ -250,7 +250,7 @@ func TestGetPostAndGetPostsByFilter(t *testing.T) {
 	svc := newSvcForTest(
 		&stubPostRepo{
 			createFn: func(post *domain.Post) error { return nil },
-			getByID:  func(id uint) (*domain.Post, error) { return &domain.Post{ID: id}, nil },
+			getByID:  func(id uint) (*domain.Post, error) { return &domain.Post{ID: id, Published: true}, nil },
 			getAll:   func(filter model.PostFilter) ([]*domain.Post, error) { return []*domain.Post{{ID: 1}}, nil },
 			updateFn: func(post *domain.Post) error { return nil },
 			deleteFn: func(id uint) error { return nil },
@@ -267,11 +267,11 @@ func TestGetPostAndGetPostsByFilter(t *testing.T) {
 		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
 	)
 
-	post, err := svc.GetPost(1)
+	post, err := svc.GetPost(1, nil)
 	if err != nil || len(post.Tags) != 1 {
 		t.Fatalf("expected post with tags, got %v err=%v", post, err)
 	}
-	posts, err := svc.GetPostsByFilter(model.PostFilter{})
+	posts, err := svc.GetPostsByFilter(model.PostFilter{}, nil)
 	if err != nil || len(posts) != 1 {
 		t.Fatalf("expected posts, got %v err=%v", posts, err)
 	}
@@ -279,13 +279,13 @@ func TestGetPostAndGetPostsByFilter(t *testing.T) {
 
 func TestGetPost_TagLoadFailureNonFatal(t *testing.T) {
 	svc := newSvcForTest(
-		&stubPostRepo{createFn: func(post *domain.Post) error { return nil }, getByID: func(id uint) (*domain.Post, error) { return &domain.Post{ID: id}, nil }, getAll: func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil }, updateFn: func(post *domain.Post) error { return nil }, deleteFn: func(id uint) error { return nil }},
+		&stubPostRepo{createFn: func(post *domain.Post) error { return nil }, getByID: func(id uint) (*domain.Post, error) { return &domain.Post{ID: id, Published: true}, nil }, getAll: func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil }, updateFn: func(post *domain.Post) error { return nil }, deleteFn: func(id uint) error { return nil }},
 		&stubTagRepo{attachFn: func(postID uint, tagNames []string) error { return nil }, replaceFn: func(postID uint, tagNames []string) error { return nil }, getTagsFn: func(postID uint) ([]*domain.Tag, error) { return nil, errors.New("tag fail") }, listTagsFn: func() ([]*domain.Tag, error) { return nil, nil }, deleteUnused: func(tagID uint) error { return nil }},
 		&config.PostConfig{},
 		&stubImageAdapter{processFn: func(content string, userID uint) (string, error) { return content, nil }, uploadFn: func(data string, userID uint) (string, error) { return "", nil }, deleteFn: func(path string) error { return nil }, extractFn: func(content string) []string { return nil }},
 		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
 	)
-	post, err := svc.GetPost(1)
+	post, err := svc.GetPost(1, nil)
 	if err != nil || post == nil {
 		t.Fatalf("expected success despite tag error")
 	}
@@ -312,10 +312,10 @@ func TestGetPostAndGetPostsByFilter_RepoErrors(t *testing.T) {
 		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
 	)
 
-	if _, err := svc.GetPost(1); err == nil {
+	if _, err := svc.GetPost(1, nil); err == nil {
 		t.Fatalf("expected get post error")
 	}
-	if _, err := svc.GetPostsByFilter(model.PostFilter{}); err == nil {
+	if _, err := svc.GetPostsByFilter(model.PostFilter{}, nil); err == nil {
 		t.Fatalf("expected list posts error")
 	}
 }
@@ -505,7 +505,7 @@ func TestUpdatePost_TitleOnly(t *testing.T) {
 
 func TestDeletePost(t *testing.T) {
 	post := &domain.Post{
-		ID: 1, AuthorID: 1, Thumbnail: "/thumb.png", Content: "![a](/a.png)",
+		ID: 1, AuthorID: 1, Thumbnail: "/1/blog/img/thumb.png", Content: "![a](/1/blog/img/a.png)",
 		Tags: []*domain.Tag{{ID: 1, Name: "go"}},
 	}
 	deleteImageCalls := 0
@@ -542,7 +542,7 @@ func TestDeletePost(t *testing.T) {
 				deleteImageCalls++
 				return errors.New("img delete fail")
 			},
-			extractFn: func(content string) []string { return []string{"/a.png"} },
+			extractFn: func(content string) []string { return []string{"/1/blog/img/a.png"} },
 		},
 		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
 	)
@@ -581,5 +581,126 @@ func TestListTags(t *testing.T) {
 	tags, err := svc.ListTags()
 	if err != nil || len(tags) != 1 {
 		t.Fatalf("expected tags, got %v err=%v", tags, err)
+	}
+}
+
+func TestGetPost_HidesDraftsFromNonAuthors(t *testing.T) {
+	post := &domain.Post{ID: 1, AuthorID: 7, Published: false, Title: "draft"}
+	svc := newSvcForTest(
+		&stubPostRepo{
+			createFn: func(post *domain.Post) error { return nil },
+			getByID:  func(id uint) (*domain.Post, error) { return post, nil },
+			getAll:   func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil },
+			updateFn: func(post *domain.Post) error { return nil },
+			deleteFn: func(id uint) error { return nil },
+		},
+		&stubTagRepo{
+			attachFn:     func(postID uint, tagNames []string) error { return nil },
+			replaceFn:    func(postID uint, tagNames []string) error { return nil },
+			getTagsFn:    func(postID uint) ([]*domain.Tag, error) { return nil, nil },
+			listTagsFn:   func() ([]*domain.Tag, error) { return nil, nil },
+			deleteUnused: func(tagID uint) error { return nil },
+		},
+		&config.PostConfig{},
+		&stubImageAdapter{processFn: func(content string, userID uint) (string, error) { return content, nil }, uploadFn: func(data string, userID uint) (string, error) { return "", nil }, deleteFn: func(path string) error { return nil }, extractFn: func(content string) []string { return nil }},
+		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
+	)
+
+	if _, err := svc.GetPost(1, nil); err == nil {
+		t.Fatalf("anonymous caller must not see drafts")
+	}
+	other := uint(9)
+	if _, err := svc.GetPost(1, &other); err == nil {
+		t.Fatalf("other users must not see drafts")
+	}
+	author := uint(7)
+	if _, err := svc.GetPost(1, &author); err != nil {
+		t.Fatalf("author should see own draft: %v", err)
+	}
+}
+
+func TestGetPostsByFilter_ForcesPublishedForAnonymous(t *testing.T) {
+	var seen model.PostFilter
+	svc := newSvcForTest(
+		&stubPostRepo{
+			createFn: func(post *domain.Post) error { return nil },
+			getByID:  func(id uint) (*domain.Post, error) { return nil, nil },
+			getAll:   func(filter model.PostFilter) ([]*domain.Post, error) { seen = filter; return nil, nil },
+			updateFn: func(post *domain.Post) error { return nil },
+			deleteFn: func(id uint) error { return nil },
+		},
+		&stubTagRepo{
+			attachFn:     func(postID uint, tagNames []string) error { return nil },
+			replaceFn:    func(postID uint, tagNames []string) error { return nil },
+			getTagsFn:    func(postID uint) ([]*domain.Tag, error) { return nil, nil },
+			listTagsFn:   func() ([]*domain.Tag, error) { return nil, nil },
+			deleteUnused: func(tagID uint) error { return nil },
+		},
+		&config.PostConfig{},
+		&stubImageAdapter{processFn: func(content string, userID uint) (string, error) { return content, nil }, uploadFn: func(data string, userID uint) (string, error) { return "", nil }, deleteFn: func(path string) error { return nil }, extractFn: func(content string) []string { return nil }},
+		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
+	)
+
+	drafts := false
+	if _, err := svc.GetPostsByFilter(model.PostFilter{Published: &drafts}, nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if seen.Published == nil || !*seen.Published {
+		t.Fatalf("anonymous filter must be forced to published=true, got %v", seen.Published)
+	}
+
+	caller := uint(1)
+	if _, err := svc.GetPostsByFilter(model.PostFilter{Published: &drafts}, &caller); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if seen.Published == nil || *seen.Published {
+		t.Fatalf("authenticated filter should be preserved, got %v", seen.Published)
+	}
+}
+
+func TestDeletePost_SkipsNonOwnedImages(t *testing.T) {
+	post := &domain.Post{
+		ID: 1, AuthorID: 1,
+		Thumbnail: "/2/blog/img/victim-thumb.png",
+		Content:   "![x](/2/blog/img/victim.png)",
+	}
+	var deleted []string
+	svc := newSvcForTest(
+		&stubPostRepo{
+			createFn: func(post *domain.Post) error { return nil },
+			getByID:  func(id uint) (*domain.Post, error) { return post, nil },
+			getAll:   func(filter model.PostFilter) ([]*domain.Post, error) { return nil, nil },
+			updateFn: func(post *domain.Post) error { return nil },
+			deleteFn: func(id uint) error { return nil },
+		},
+		&stubTagRepo{
+			attachFn:     func(postID uint, tagNames []string) error { return nil },
+			replaceFn:    func(postID uint, tagNames []string) error { return nil },
+			getTagsFn:    func(postID uint) ([]*domain.Tag, error) { return nil, nil },
+			listTagsFn:   func() ([]*domain.Tag, error) { return nil, nil },
+			deleteUnused: func(tagID uint) error { return nil },
+		},
+		&config.PostConfig{},
+		&stubImageAdapter{
+			processFn: func(content string, userID uint) (string, error) { return content, nil },
+			uploadFn:  func(data string, userID uint) (string, error) { return "", nil },
+			deleteFn:  func(path string) error { deleted = append(deleted, path); return nil },
+			extractFn: func(content string) []string {
+				return []string{
+					"/2/blog/img/victim.png",
+					"/1/blog/img/own.png",
+					"https://evil.example/1/blog/img/x.png",
+					"1/blog/img/own2.png",
+				}
+			},
+		},
+		&stubTranslationAdapter{singleFn: func(text string) (string, error) { return "", nil }, markdownFn: func(content string) (string, error) { return "", nil }},
+	)
+
+	if err := svc.DeletePost(1, 1); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(deleted) != 2 || deleted[0] != "/1/blog/img/own.png" || deleted[1] != "1/blog/img/own2.png" {
+		t.Fatalf("expected only author-owned images to be deleted, got %v", deleted)
 	}
 }

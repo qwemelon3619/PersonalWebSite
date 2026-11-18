@@ -20,8 +20,8 @@ type UploadImageResponse struct {
 // CreatePostRequest represents the request payload for creating a new post
 type CreatePostRequest struct {
 	Title         string   `json:"title" binding:"required,min=1,max=200"`
-	Content       string   `json:"content" binding:"required"`
-	ThumbnailData string   `json:"thumbnail_data,omitempty"`
+	Content       string   `json:"content" binding:"required,max=500000"`
+	ThumbnailData string   `json:"thumbnail_data,omitempty" binding:"omitempty,max=300000"`
 	Published     bool     `json:"published"`
 	Tags          []string `json:"tags,omitempty"`
 }
@@ -29,8 +29,8 @@ type CreatePostRequest struct {
 // UpdatePostRequest represents the request payload for updating an existing post
 type UpdatePostRequest struct {
 	Title         *string   `json:"title,omitempty" binding:"omitempty,min=1,max=200"`
-	Content       *string   `json:"content,omitempty"`
-	ThumbnailData *string   `json:"thumbnail_data,omitempty"`
+	Content       *string   `json:"content,omitempty" binding:"omitempty,max=500000"`
+	ThumbnailData *string   `json:"thumbnail_data,omitempty" binding:"omitempty,max=300000"`
 	Published     *bool     `json:"published,omitempty"`
 	Tags          *[]string `json:"tags,omitempty"`
 }

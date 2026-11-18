@@ -85,13 +85,10 @@ func (s *authService) OAuthLogin(provider, code string) (*model.LoginResponse, *
 	if googleUser.Email != "lspyo11@gmail.com" {
 		return nil, nil, fmt.Errorf("unauthorized email")
 	}
-	fmt.Printf("DEBUG: Google user ID: %s, Name: %s, Email: %s\n", googleUser.ID, googleUser.Name, googleUser.Email)
 	user, err := s.repo.GetByProviderID("google", googleUser.ID)
 	if err != nil {
-		fmt.Printf("DEBUG: GetByProviderID error: %v\n", err)
 		if err.Error() == "user not found" {
 			// User does not exist, create new user
-			fmt.Println("DEBUG: Creating new user")
 			newUser := &domain.User{
 				Username:   googleUser.Name,
 				Email:      googleUser.Email,
@@ -105,8 +102,6 @@ func (s *authService) OAuthLogin(provider, code string) (*model.LoginResponse, *
 		} else {
 			return nil, nil, fmt.Errorf("failed to get user: %w", err)
 		}
-	} else {
-		fmt.Printf("DEBUG: Found existing user: ID=%d, Username=%s\n", user.ID, user.Username)
 	}
 
 	//generate tokens
@@ -153,9 +148,12 @@ func (s *authService) RefreshToken(refreshToken string) (string, string, error) 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
 	}
-	// Revoke old refresh token by adding to blacklist until it would naturally expire
-	// The TokenManager.RevokeToken expects the token string and TTL; let it compute TTL from token claims
-	_ = s.TokenManager.RevokeToken(refreshToken, 0)
+	// Revoke old refresh token by adding to blacklist until it would naturally expire.
+	// If revocation fails, fail the refresh so a failed rotation does not leave the
+	// old refresh token usable.
+	if err := s.TokenManager.RevokeToken(refreshToken, 0); err != nil {
+		return "", "", fmt.Errorf("failed to revoke old refresh token: %w", err)
+	}
 	// For the service layer we return the new access token and new refresh token together
 	// Caller (handler) can decide how to deliver the refresh token (cookie).
 	// We encode both separated by a pipe as a simple return (handler will parse)

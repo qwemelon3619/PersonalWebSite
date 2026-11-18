@@ -164,7 +164,7 @@ func TestIntegration_ExpiredAccessTokenGetsRefreshedAndProxied(t *testing.T) {
 	defer postSvc.Close()
 
 	r := gin.New()
-	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, authSvc.URL, 15)
+	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, authSvc.URL, 15, 60)
 	r.POST("/v1/posts", authMw, proxyTo(postSvc.URL+"/posts"))
 
 	req := httptest.NewRequest(http.MethodPost, "/v1/posts", bytes.NewBufferString(`{"title":"test"}`))
@@ -208,7 +208,7 @@ func TestRoutePolicy_PostsGetUnprotectedAndWriteMethodsProtected(t *testing.T) {
 	defer postSvc.Close()
 
 	r := gin.New()
-	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15)
+	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15, 60)
 	r.GET("/v1/posts", proxyTo(postSvc.URL+"/posts"))
 	r.POST("/v1/posts", authMw, proxyTo(postSvc.URL+"/posts"))
 	r.PUT("/v1/posts/:id", authMw, proxyTo(postSvc.URL+"/posts/:id"))
@@ -257,7 +257,7 @@ func TestRoutePolicy_AuthUsersRouteProtected(t *testing.T) {
 	defer authSvc.Close()
 
 	r := gin.New()
-	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15)
+	authMw := internalmw.AuthOrRefreshMiddleware(tokenManager, "http://127.0.0.1:65534", 15, 60)
 	r.GET("/v1/auth/users/:id", authMw, proxyTo(authSvc.URL+"/users/:id"))
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/auth/users/1", nil)
